@@ -175,6 +175,8 @@ void tx_send(){
     if(tx_status == USBD_OK){
     	tx_status = tx_status;
     }
+
+    DataTransmit2MTLB(20, tx_buffer, nData);
 }
 
 int8_t CDC_myReceive_FS(uint8_t* Buf, uint32_t *Len){
@@ -202,8 +204,8 @@ int8_t CDC_myReceive_FS(uint8_t* Buf, uint32_t *Len){
 	case 2:
 		//nacitani samotnych dat
 		memcpy((uint8_t*)xxData, Buf, 4*nData);
-
-		rx_state = 3;
+		tx_send();
+		rx_state = 0;
 		break;
 	}
 
@@ -214,7 +216,7 @@ int8_t CDC_myReceive_FS(uint8_t* Buf, uint32_t *Len){
 void tx_process(void)//called from inf. loop
 {
 	//if(!m2s_Status) return;//the most often ....
-	if(rx_state ==3)
+	if(rx_state == 3)
 	{
 		tx_send();
 		rx_state = 0;
@@ -354,7 +356,7 @@ int main(void)
 
 	  m2s_Process();
 
-	  tx_process();
+	  //tx_process();
 
   }
   /* USER CODE END 3 */
