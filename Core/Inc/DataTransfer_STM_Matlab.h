@@ -18,18 +18,45 @@ int DataTransmit2MTLB(uint16_t iD, uint8_t * xData, uint16_t nData_in_values)
 {
 	if(s2m_Status) return -1;
 	if((sizeof(buf_M_TX)-4)<(nData_in_values*4)) return -2;
+
 	s2m_Status=1;
+
 	((uint16_t *) buf_M_TX)[0] = iD;
 	((uint16_t *) buf_M_TX)[1] = nData_in_values;
 	if(nData_in_values>0) memcpy(buf_M_TX+1, xData, nData_in_values*4);
+
 	s2m_Status = CDC_Transmit_FS((uint8_t*) buf_M_TX, nData_in_values*4 + 4);
+
 	if(s2m_Status)
 	{
 		s2m_Status=0;//if on zero... USB busy
 	}
 	return 0;
 }
-int SendData2MTLB(uint16_t iD, uint8_t * xData, uint16_t nData_in_values){	return DataTransmit2MTLB(iD, xData, nData_in_values);}
+int SendData2MTLB(uint16_t iD, uint8_t * xData, uint16_t nData_in_values){
+	return DataTransmit2MTLB(iD, xData, nData_in_values);
+}
+
+int SendInt2MTLB(uint16_t iD, int * xInt){
+
+	//uint8_t tx_int[sizeof(int)];
+
+	//uint8_t *ptr = xInt;
+	//ptr += sizeof(uint8_t);
+
+
+//	for (int i = 0; i < sizeof(int); ++i) {
+//
+//
+//		//tx_int[i] = (*(uint8_t *)(xInt) >> (i * 8)) & 0xFF;
+//        tx_int[sizeof(int) - 1 - i] = (*(uint8_t *)(xInt) >> (i * 8)) & 0xFF;
+//		//tx_int[i] = (uint8_t)(tx_int >> (i * 8)); // Posunutí bytů integer hodnoty a přetypování
+//	}
+//	return DataTransmit2MTLB(iD, tx_int, sizeof(int));
+	return DataTransmit2MTLB(iD, (uint8_t *)xInt, 1);
+}
+
+//int SendPotenciometer2MTLB(uint16_t iD, )
 
 void m2s_Process(void)//called from inf. loop
 {

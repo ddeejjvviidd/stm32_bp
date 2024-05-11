@@ -48,8 +48,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
 // buffer s uvodnim pozdravem volan pri vykonani main()
-uint8_t welcome_tx_buffer[16] = "Hello world\n\r";
+//uint8_t welcome_tx_buffer[16] = "Hello world\n\r";
 
 // dva znaky, data jsou prenasena binarne a nemela by obsahovat ukoncovaci znak
 uint16_t iD;
@@ -79,6 +80,9 @@ float cpy[1000];
 uint16_t dma_data_buffer[200];
 
 float potenciometer;
+int potenciometerInt;
+uint8_t potenciometerArr[sizeof(int)];
+uint8_t potenciometerArr2[sizeof(int)];
 
 
 
@@ -87,7 +91,11 @@ float potenciometer;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
+
+
 extern uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len); //nekde je kod funkce, aby vedel, ze existuje
+
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -123,7 +131,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 void DataReceive_MTLB_Callback(uint16_t iD, uint32_t * xData, uint16_t nData_in_values)
 {//when data comes from matlab, this is called and here is the branching and processing
-	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	//HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_SET);
 	switch(iD)
 	{
 	case 20:
@@ -140,23 +149,12 @@ void DataReceive_MTLB_Callback(uint16_t iD, uint32_t * xData, uint16_t nData_in_
 	default:
 	break;
 	}
-	HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+	//HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_14, GPIO_PIN_RESET);
 }
 
 void tx_send(){
-	/*
-	int output_size = ( sizeof(uint8_t) * ((2 * sizeof(uint16_t)) + (nData * sizeof(uint32_t))) );
-	uint8_t OutputBuf[output_size];
 
-    memcpy(&OutputBuf[1], &iD, sizeof(uint16_t));
-
-    memcpy(&OutputBuf[3], &nData, sizeof(uint16_t));
-
-    for (int i = 0; i < 10; ++i) {
-    	//memcpy(&OutputBuf[4+(((i+1)*4)-1)], xData[i], sizeof(char)); // prevod z uint32_t
-    	OutputBuf[4+(((i+1)*4)-1)] = xData[i];
-	}
-	*/
 	uint8_t *ptr = tx_buffer;
 
     // Kopírování proměnných iD a nData do tx_buffer
@@ -195,9 +193,6 @@ int8_t CDC_myReceive_FS(uint8_t* Buf, uint32_t *Len){
 		//delka ocekavanych dat
 	    nData = ((uint16_t *) Buf)[0] *4;
 
-	    //memcpy(&xData_length, Buf, sizeof(int));
-		//memcpy(nData, Buf, (*Len));
-
 		rx_state = 2;
 		break;
 
@@ -222,15 +217,6 @@ void tx_process(void)//called from inf. loop
 		rx_state = 0;
 		return;
 	}
-//	if(m2s_Status==2)
-//	{
-//	}
-//
-//	if(m2s_Status== -1)//init receiving new message from matlab
-//	{
-//		m2s_Status = 0;
-//	return;
-//	}
 }
 
 
@@ -251,6 +237,10 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 	  potenciometer = potenciometer + dma_data_buffer[i+100];
   }
   potenciometer = potenciometer / 100;
+
+  potenciometerInt = (int)potenciometer;
+
+  SendInt2MTLB(23, &potenciometerInt);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
@@ -263,6 +253,16 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 	  potenciometer = potenciometer + dma_data_buffer[i];
   }
   potenciometer = potenciometer / 100;
+
+  potenciometerInt = (int)potenciometer;
+
+//  for (int i = 0; i < sizeof(int); ++i) {
+//	  potenciometerArr[i] = (uint8_t)(potenciometerInt >> (i * 8)); // Posunutí bytů integer hodnoty a přetypování
+//  }
+
+  //memcpy(potenciometerArr2, &potenciometerInt, sizeof(int));
+
+  //SendInt2MTLB(23, &potenciometerInt);
 }
 
 /* USER CODE END 0 */
@@ -306,15 +306,17 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+
   // zapnuti zelene ledky
   HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
+
 
   // volani casovace
   HAL_TIM_Base_Start_IT(&htim6);
 
-  char *msg = "Hello world!\n\r";
-  HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 0xFFFF);
-  HAL_UART_Receive_DMA(&hlpuart1, (uint8_t*)testdata, 10);
+  //char *msg = "Hello world!\n\r";
+  //HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 0xFFFF);
+  //HAL_UART_Receive_DMA(&hlpuart1, (uint8_t*)testdata, 10);
 
   //zjistovani casu potrebneho pro kopirovani mezi poli
   HAL_TIM_Base_Start(&htim5);
@@ -323,11 +325,9 @@ int main(void)
 	  dma[i] = i;
   }
 
-  tic = htim5.Instance->CNT;
-
+  //tic = htim5.Instance->CNT;
   //memcpy(cpy, dma, 500*sizeof(float));
-
-  toc = htim5.Instance->CNT;
+  //toc = htim5.Instance->CNT;
 
   HAL_StatusTypeDef status = HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel2, HAL_DMA_XFER_CPLT_CB_ID, &myDmaFunction);
   UNUSED(status);
@@ -352,7 +352,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  //HAL_UART_Transmit(&huart3, welcome_tx_buffer, 16, 10);
 
 	  m2s_Process();
 
