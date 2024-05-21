@@ -9,7 +9,7 @@ int s2m_Status;// transmit to Matlab
 int m2s_Status;// received status 0...waiting for incomming data, 1...call m2s_Process, -1... init receiving, 2...n data , 3... xData
 int m2s_ID;
 int m2s_nData_in_bytes;
-
+)
 extern uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 extern void DataReceive_MTLB_Callback(uint16_t iD, uint32_t * xData, uint16_t nData_in_values);
 
