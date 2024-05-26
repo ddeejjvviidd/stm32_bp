@@ -9,7 +9,7 @@ int s2m_Status;// transmit to Matlab
 int m2s_Status;// received status 0...waiting for incomming data, 1...call m2s_Process, -1... init receiving, 2...n data , 3... xData
 int m2s_ID;
 int m2s_nData_in_bytes;
-)
+
 extern uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 extern void DataReceive_MTLB_Callback(uint16_t iD, uint32_t * xData, uint16_t nData_in_values);
 
@@ -17,7 +17,9 @@ extern void DataReceive_MTLB_Callback(uint16_t iD, uint32_t * xData, uint16_t nD
 int DataTransmit2MTLB(uint16_t iD, uint8_t * xData, uint16_t nData_in_values)
 {
 	if(s2m_Status) return -1;
-	if((sizeof(buf_M_TX)-4)<(nData_in_values*4)) return -2;
+	if( (sizeof(buf_M_TX)-4) < (nData_in_values*4) ) {
+		return -2;
+	}
 
 	s2m_Status=1;
 
@@ -33,30 +35,16 @@ int DataTransmit2MTLB(uint16_t iD, uint8_t * xData, uint16_t nData_in_values)
 	}
 	return 0;
 }
-int SendData2MTLB(uint16_t iD, uint8_t * xData, uint16_t nData_in_values){
+
+int SendData2MTLB(uint16_t iD, uint8_t * xData, uint16_t nData_in_values)
+{
 	return DataTransmit2MTLB(iD, xData, nData_in_values);
 }
 
-int SendInt2MTLB(uint16_t iD, int * xInt){
-
-	//uint8_t tx_int[sizeof(int)];
-
-	//uint8_t *ptr = xInt;
-	//ptr += sizeof(uint8_t);
-
-
-//	for (int i = 0; i < sizeof(int); ++i) {
-//
-//
-//		//tx_int[i] = (*(uint8_t *)(xInt) >> (i * 8)) & 0xFF;
-//        tx_int[sizeof(int) - 1 - i] = (*(uint8_t *)(xInt) >> (i * 8)) & 0xFF;
-//		//tx_int[i] = (uint8_t)(tx_int >> (i * 8)); // Posunutí bytů integer hodnoty a přetypování
-//	}
-//	return DataTransmit2MTLB(iD, tx_int, sizeof(int));
+int SendInt2MTLB(uint16_t iD, int * xInt)
+{
 	return DataTransmit2MTLB(iD, (uint8_t *)xInt, 1);
 }
-
-//int SendPotenciometer2MTLB(uint16_t iD, )
 
 void m2s_Process(void)//called from inf. loop
 {
@@ -78,6 +66,7 @@ void m2s_Process(void)//called from inf. loop
 	}
 
 }
+
 void USB_My_Receive(uint8_t* Buf, uint32_t Len)
 {
 	if(m2s_Status==0)//new message

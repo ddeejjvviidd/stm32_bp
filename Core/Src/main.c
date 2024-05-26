@@ -93,7 +93,6 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 
-extern uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len); //nekde je kod funkce, aby vedel, ze existuje
 
 
 /* USER CODE END PFP */
@@ -255,12 +254,6 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
   potenciometer = potenciometer / 100;
 
   potenciometerInt = (int)potenciometer;
-
-//  for (int i = 0; i < sizeof(int); ++i) {
-//	  potenciometerArr[i] = (uint8_t)(potenciometerInt >> (i * 8)); // Posunutí bytů integer hodnoty a přetypování
-//  }
-
-  //memcpy(potenciometerArr2, &potenciometerInt, sizeof(int));
 
   //SendInt2MTLB(23, &potenciometerInt);
 }
