@@ -264,7 +264,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-  //CDC_myReceive_FS(Buf, Len); //funkce v main.c
+  //CDC_myReceive_FS(Buf, Len); // byvala funkce v main.c
   USB_My_Receive(Buf, *Len);
 
   return (USBD_OK);
