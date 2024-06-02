@@ -7,7 +7,7 @@ function writeDataSTM32(s, iD, nData, xData)
         end
         write(s,xData(1:nData),"uint32");
     catch ME
-        disp(ME.message)   %             rethrow(ME)
+        disp(ME.message)
     end
 end
 
