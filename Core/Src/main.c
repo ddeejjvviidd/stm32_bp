@@ -17,7 +17,6 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <stm_dataTransfer.h>
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
@@ -28,6 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stm_dataTransfer.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
