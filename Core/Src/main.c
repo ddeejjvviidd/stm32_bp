@@ -37,8 +37,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define VREFINT 1.21 //referencni hodnota napeti pro teplomer
 
-/* USER CODE END PD */
+#define TS_CAL1_TEMP 30.0f // Temperature at calibration point 1
+#define TS_CAL2_TEMP 110.0f // Temperature at calibration point 2
+#define TS_CAL1_ADDR ((uint16_t*)0x1FFF75A8) // Address of calibration point 1
+#define TS_CAL2_ADDR ((uint16_t*)0x1FFF75CA) // Address of calibration point 2
+
+//#define VREFINT_CAL_ADDR ((uint16_t*)0x1FFFF7BA) // Address for VREFINT calibration Turns out its already in library
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -69,6 +75,10 @@ float potenciometer;
 int potenciometerInt;
 uint8_t potenciometerArr[sizeof(int)];
 uint8_t potenciometerArr2[sizeof(int)];
+
+//uint16_t ts_cal1 = *TS_CAL1_ADDR;
+//uint16_t ts_cal2 = *TS_CAL2_ADDR;
+
 
 /* USER CODE END PV */
 
@@ -140,7 +150,20 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	potenciometer = potenciometer / 100;
 	potenciometerInt = (int) potenciometer;
 
-	SendInt2MTLB(23, &potenciometerInt);
+	// Read calibration values
+	uint16_t ts_cal1;
+	uint16_t ts_cal2;
+	ts_cal1 = *TS_CAL1_ADDR;
+	ts_cal2 = *TS_CAL2_ADDR;
+
+
+	// Convert ADC value to temperature
+	float temperature = ((TS_CAL2_TEMP - TS_CAL1_TEMP) / (float)(ts_cal2 - ts_cal1)) *
+	                        (potenciometerInt - ts_cal1) + TS_CAL1_TEMP;
+
+	int temperatureInt = (int) temperature;
+
+	SendInt2MTLB(23, &temperatureInt);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -153,7 +176,7 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 	potenciometer = potenciometer / 100;
 	potenciometerInt = (int) potenciometer;
 
-	SendInt2MTLB(23, &potenciometerInt);
+	//SendInt2MTLB(23, &potenciometerInt);
 }
 
 /* USER CODE END 0 */
