@@ -9,6 +9,7 @@
 ../Core/Src/main.c:136:6:myDmaFunction	1
 ../Core/Src/main.c:141:6:HAL_ADC_ConvCpltCallback	2
 ../Core/Src/main.c:169:6:HAL_ADC_ConvHalfCpltCallback	2
-../Core/Src/main.c:188:5:main	2
-../Core/Src/main.c:280:6:SystemClock_Config	4
-../Core/Src/main.c:334:6:Error_Handler	1
+../Core/Src/main.c:182:6:load_CPU	1
+../Core/Src/main.c:192:5:main	2
+../Core/Src/main.c:284:6:SystemClock_Config	4
+../Core/Src/main.c:338:6:Error_Handler	1
