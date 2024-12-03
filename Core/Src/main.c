@@ -179,6 +179,10 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 	//SendInt2MTLB(23, &potenciometerInt);
 }
 
+void load_CPU() {
+
+}
+
 /* USER CODE END 0 */
 
 /**
