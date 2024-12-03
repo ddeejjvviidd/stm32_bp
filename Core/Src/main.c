@@ -39,10 +39,10 @@
 /* USER CODE BEGIN PD */
 #define VREFINT 1.21 //referencni hodnota napeti pro teplomer
 
-#define TS_CAL1_TEMP 30.0f // Temperature at calibration point 1
-#define TS_CAL2_TEMP 110.0f // Temperature at calibration point 2
-#define TS_CAL1_ADDR ((uint16_t*)0x1FFF75A8) // Address of calibration point 1
-#define TS_CAL2_ADDR ((uint16_t*)0x1FFF75CA) // Address of calibration point 2
+//#define TS_CAL1_TEMP 30.0f // Temperature at calibration point 1
+//#define TS_CAL2_TEMP 110.0f // Temperature at calibration point 2
+//#define TS_CAL1_ADDR ((uint16_t*)0x1FFF75A8) // Address of calibration point 1
+//#define TS_CAL2_ADDR ((uint16_t*)0x1FFF75CA) // Address of calibration point 2
 
 //#define VREFINT_CAL_ADDR ((uint16_t*)0x1FFFF7BA) // Address for VREFINT calibration Turns out its already in library
 
@@ -147,21 +147,25 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	for (int i = 0; i < 100; i++) {
 		potenciometer = potenciometer + dma_data_buffer[i + 100];
 	}
-	potenciometer = potenciometer / 100;
+	potenciometer /= 100; // prumer
 	potenciometerInt = (int) potenciometer;
 
-	// Read calibration values
-	uint16_t ts_cal1;
-	uint16_t ts_cal2;
-	ts_cal1 = *TS_CAL1_ADDR;
-	ts_cal2 = *TS_CAL2_ADDR;
+	// Adresy kalibračních hodnot
+	const uint16_t *TS_CAL1_ADDR = (uint16_t *)0x1FFF75A8; // Kalibrace při 30°C
+	const uint16_t *TS_CAL2_ADDR = (uint16_t *)0x1FFF75CA; // Kalibrace při 110°C
+	const float TS_CAL1_TEMP = 30.0f;  // Kalibrační teplota 1 (°C)
+	const float TS_CAL2_TEMP = 110.0f; // Kalibrační teplota 2 (°C)
 
+	// Načtení kalibračních hodnot
+	uint16_t ts_cal1 = *TS_CAL1_ADDR;
+	uint16_t ts_cal2 = *TS_CAL2_ADDR;
 
-	// Convert ADC value to temperature
+	// Převod ADC hodnoty na teplotu
 	float temperature = ((TS_CAL2_TEMP - TS_CAL1_TEMP) / (float)(ts_cal2 - ts_cal1)) *
-	                        (potenciometerInt - ts_cal1) + TS_CAL1_TEMP;
+						(potenciometerInt - ts_cal1) + TS_CAL1_TEMP;
 
-	int temperatureInt = (int) temperature;
+	// Převedení teploty na celé číslo
+	int temperatureInt = (int)temperature;
 
 	SendInt2MTLB(23, &temperatureInt);
 }
