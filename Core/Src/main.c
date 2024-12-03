@@ -37,14 +37,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define VREFINT 1.21 //referencni hodnota napeti pro teplomer
 
-//#define TS_CAL1_TEMP 30.0f // Temperature at calibration point 1
-//#define TS_CAL2_TEMP 110.0f // Temperature at calibration point 2
-//#define TS_CAL1_ADDR ((uint16_t*)0x1FFF75A8) // Address of calibration point 1
-//#define TS_CAL2_ADDR ((uint16_t*)0x1FFF75CA) // Address of calibration point 2
 
-//#define VREFINT_CAL_ADDR ((uint16_t*)0x1FFFF7BA) // Address for VREFINT calibration Turns out its already in library
+/* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -147,26 +142,24 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	for (int i = 0; i < 100; i++) {
 		potenciometer = potenciometer + dma_data_buffer[i + 100];
 	}
-	potenciometer /= 100; // prumer
-	potenciometerInt = (int) potenciometer;
+	potenciometer /= 100;
 
-	// Adresy kalibračních hodnot
-	const uint16_t *TS_CAL1_ADDR = (uint16_t *)0x1FFF75A8; // Kalibrace při 30°C
-	const uint16_t *TS_CAL2_ADDR = (uint16_t *)0x1FFF75CA; // Kalibrace při 110°C
-	const float TS_CAL1_TEMP = 30.0f;  // Kalibrační teplota 1 (°C)
-	const float TS_CAL2_TEMP = 110.0f; // Kalibrační teplota 2 (°C)
+    // Constants from the microcontroller's memory
+    uint16_t TS_CAL1 = *((uint16_t*)0x1FFF75A8); // @30°C
+    uint16_t TS_CAL2 = *((uint16_t*)0x1FFF75CA); // @110°C
+    uint16_t VREFINT_CAL = *((uint16_t*)0x1FFF75AA); // Reference voltage calibration
+    VREFINT_CAL = 1212;
 
-	// Načtení kalibračních hodnot
-	uint16_t ts_cal1 = *TS_CAL1_ADDR;
-	uint16_t ts_cal2 = *TS_CAL2_ADDR;
+    // Adjust for VREF if necessary
+    float VREF = 3.0; // Assumed external reference voltage in volts
+    float vdda = VREF * VREFINT_CAL / potenciometer;
 
-	// Převod ADC hodnoty na teplotu
-	float temperature = ((TS_CAL2_TEMP - TS_CAL1_TEMP) / (float)(ts_cal2 - ts_cal1)) *
-						(potenciometerInt - ts_cal1) + TS_CAL1_TEMP;
+    // Convert to temperature
+    float temperature = ((float)(potenciometer - TS_CAL1) / (TS_CAL2 - TS_CAL1)) * (110.0 - 30.0) + 30.0;
+    //float temperature = ((110 - 30)/(TS_CAL2 - TS_CAL1)) * (potenciometer - 30) + 30;
 
-	// Převedení teploty na celé číslo
-	int temperatureInt = (int)temperature;
-
+    // Převedení na celé číslo pro výstup
+    int temperatureInt = (int)temperature;
 	SendInt2MTLB(23, &temperatureInt);
 }
 
@@ -184,7 +177,31 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 }
 
 void load_CPU() {
+    // Alokace dvou velkých polí
+    uint32_t *src_array = (uint32_t*)malloc(1000000 * sizeof(uint32_t));
+    uint32_t *dest_array = (uint32_t*)malloc(1000000 * sizeof(uint32_t));
 
+    if (src_array == NULL || dest_array == NULL) {
+        // Pokud se nepodaří alokovat paměť
+        return;
+    }
+
+    // Naplnění zdrojového pole hodnotami
+    for (uint32_t i = 0; i < 1000000; i++) {
+        src_array[i] = i;
+    }
+
+    // Opakované kopírování polí pro zatížení CPU
+    for (uint32_t repeat = 0; repeat < 100000; repeat++) {
+        for (uint32_t i = 0; i < 1000000; i++) {
+            dest_array[i] = src_array[i];
+            int test = 999999999 / 190241835;
+        }
+    }
+
+    // Uvolnění paměti
+    free(src_array);
+    free(dest_array);
 }
 
 /* USER CODE END 0 */
@@ -275,6 +292,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+		load_CPU();
 		m2s_Process();
 
 	}
