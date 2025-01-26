@@ -28,6 +28,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "stm_dataTransfer.h"
+#include "math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,6 +39,13 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define VREF 3.3f // Referenční napětí ADC
+#define ADC_RESOLUTION 4096.0f // Rozlišení ADC (12-bit)
+#define TS_CAL1_ADDR  ((uint16_t*)0x1FFF75A8) // Factory-calibrated value at 30°C
+#define TS_CAL2_ADDR  ((uint16_t*)0x1FFF75CA) // Factory-calibrated value at 110°C
+#define TEMP30_CAL_V  *TS_CAL1_ADDR // ADC hodnota při 30°C
+#define TEMP110_CAL_V *TS_CAL2_ADDR // ADC hodnota při 110°C
+#define TEMP_DIFF  (110.0f - 30.0f) // Rozdíl teplot mezi kalibracemi
 
 /* USER CODE END PD */
 
@@ -66,14 +74,17 @@ float cpy[1000];
 //promenna pro DMA kruhovy buffer
 uint16_t dma_data_buffer[200];
 
-float potenciometer;
-int potenciometerInt;
-uint8_t potenciometerArr[sizeof(int)];
-uint8_t potenciometerArr2[sizeof(int)];
+float adcValue = 0.0f;
+int adcValueInt = 0;
+float temperature = 0.0f;
+
+uint8_t adcValueArr[sizeof(int)];
+uint8_t adcValueArr2[sizeof(int)];
+
+float vref_actual = 0.0f;
 
 //uint16_t ts_cal1 = *TS_CAL1_ADDR;
 //uint16_t ts_cal2 = *TS_CAL2_ADDR;
-
 
 /* USER CODE END PV */
 
@@ -134,46 +145,42 @@ void myDmaFunction(DMA_HandleTypeDef *_hdma) {
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-	// Callback pro naplneni celeho kruhoveho bufferu
+    UNUSED(hadc);
 
-	UNUSED(hadc);
+    // Průměrování ADC hodnot
+    adcValue = 0.0f;
+    for (int i = 0; i < 100; i++) {
+        adcValue += dma_data_buffer[i + 100]; // Použití druhé poloviny DMA bufferu
+    }
+    adcValue /= 100.0f;
 
-	potenciometer = 0;
-	for (int i = 0; i < 100; i++) {
-		potenciometer = potenciometer + dma_data_buffer[i + 100];
-	}
-	potenciometer /= 100;
+    // Převod ADC hodnoty na napětí
+    float adcVoltage = (adcValue / ADC_RESOLUTION) * VREF;
+    //float adcVoltage = 1.21;
 
-    // Constants from the microcontroller's memory
-    uint16_t TS_CAL1 = *((uint16_t*)0x1FFF75A8); // @30°C
-    uint16_t TS_CAL2 = *((uint16_t*)0x1FFF75CA); // @110°C
-    uint16_t VREFINT_CAL = *((uint16_t*)0x1FFF75AA); // Reference voltage calibration
-    VREFINT_CAL = 1212;
+    // Výpočet teploty
+    float temp30 = ((float)TEMP30_CAL_V / ADC_RESOLUTION) * VREF;
+    float temp110 = ((float)TEMP110_CAL_V / ADC_RESOLUTION) * VREF;
+    //temperature = ((adcVoltage - temp30) * TEMP_DIFF / (temp110 - temp30)) + 30.0f;
+    temperature = ((adcVoltage - temp30) * TEMP_DIFF) + 30.0f;
+    //temperature = ((110.0 - 30.0)/(TEMP110_CAL_V - TEMP30_CAL_V)) * (adcValue - TEMP30_CAL_V) + 30.0;
 
-    // Adjust for VREF if necessary
-    float VREF = 3.0; // Assumed external reference voltage in volts
-    float vdda = VREF * VREFINT_CAL / potenciometer;
-
-    // Convert to temperature
-    float temperature = ((float)(potenciometer - TS_CAL1) / (TS_CAL2 - TS_CAL1)) * (110.0 - 30.0) + 30.0;
-    //float temperature = ((110 - 30)/(TS_CAL2 - TS_CAL1)) * (potenciometer - 30) + 30;
-
-    // Převedení na celé číslo pro výstup
+    // Odeslání teploty jako integer
     int temperatureInt = (int)temperature;
-	SendInt2MTLB(23, &temperatureInt);
+    SendInt2MTLB(23, &temperatureInt);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 	UNUSED(hadc);
 
-	potenciometer = 0;
+	adcValue = 0;
 	for (int i = 0; i < 100; i++) {
-		potenciometer = potenciometer + dma_data_buffer[i];
+		adcValue = adcValue + dma_data_buffer[i];
 	}
-	potenciometer = potenciometer / 100;
-	potenciometerInt = (int) potenciometer;
+	adcValue = adcValue / 100;
+	adcValueInt = (int) adcValue;
 
-	//SendInt2MTLB(23, &potenciometerInt);
+	//SendInt2MTLB(23, &adcValueInt);
 }
 
 void load_CPU() {
@@ -276,6 +283,8 @@ int main(void)
 
 	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+
+	HAL_Delay(50);
 
 
 	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 200);
