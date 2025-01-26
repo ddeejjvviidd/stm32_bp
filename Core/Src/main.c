@@ -78,8 +78,7 @@ float adcValue = 0.0f;
 int adcValueInt = 0;
 float temperature = 0.0f;
 
-uint8_t adcValueArr[sizeof(int)];
-uint8_t adcValueArr2[sizeof(int)];
+float adcIn1 = 0.0f;
 
 float vref_actual = 0.0f;
 
@@ -149,10 +148,15 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
     // Průměrování ADC hodnot
     adcValue = 0.0f;
+    adcIn1 = 0.0f;
+
     for (int i = 0; i < 100; i++) {
         adcValue += dma_data_buffer[i + 100]; // Použití druhé poloviny DMA bufferu
+        i++;
+        adcIn1 += dma_data_buffer[i + 100];
     }
     adcValue /= 100.0f;
+    adcIn1 /= 100.0f;
 
     // Převod ADC hodnoty na napětí
     float adcVoltage = (adcValue / ADC_RESOLUTION) * VREF;
@@ -168,6 +172,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     // Odeslání teploty jako integer
     int temperatureInt = (int)temperature;
     SendInt2MTLB(23, &temperatureInt);
+
+    int adcIn1Int = (int)adcIn1;
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -301,7 +307,7 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-		load_CPU();
+		//load_CPU();
 		m2s_Process();
 
 	}
