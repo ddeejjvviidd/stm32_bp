@@ -109,7 +109,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		periodical += 1;
 
 		//odeslani do matlabu
-		DataTransmit2MTLB(1, &periodical, 1);
+		//DataTransmit2MTLB(1, &periodical, 1);
 	}
 }
 
@@ -131,7 +131,7 @@ void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_v
 	switch (iD) {
 	case 20:
 		//data odesilam zpet do matlabu
-		DataTransmit2MTLB(20, xData, nData_in_values);
+		//DataTransmit2MTLB(20, xData, nData_in_values);
 		break;
 
 	default:
@@ -150,15 +150,15 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
     // Průměrování ADC hodnot
     adcValue = 0.0f;
-    //adcIn1 = 0.0f;
+    adcIn1 = 0.0f;
 
     for (int i = 0; i < 100; i++) {
         adcValue += dma_data_buffer[i + 100]; // Použití druhé poloviny DMA bufferu
-        //adcIn1 += dma_data_buffer[i + 1 + 100];
+        adcIn1 += dma_data_buffer[i + 1 + 100];
         i++;
     }
     adcValue /= 50.0f;
-    //adcIn1 /= 50.0f;
+    adcIn1 /= 50.0f;
 
     // Převod ADC hodnoty na napětí
     float adcVoltage = (adcValue / ADC_RESOLUTION) * VREF;
@@ -171,11 +171,13 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     temperature = ((adcVoltage - temp30) * TEMP_DIFF) + 30.0f;
     //temperature = ((110.0 - 30.0)/(TEMP110_CAL_V - TEMP30_CAL_V)) * (adcValue - TEMP30_CAL_V) + 30.0;
     numOfCalling++;
+
     // Odeslání teploty jako integer
     int temperatureInt = (int)temperature;
-    SendInt2MTLB(23, &temperatureInt);
+    SendInt2MTLB(2, &temperatureInt);
 
-    //int adcIn1Int = (int)adcIn1;
+    int adcIn1Int = (int)adcIn1;
+    //SendInt2MTLB(23, &adcIn1Int);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
