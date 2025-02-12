@@ -8,12 +8,61 @@ uint32_t buf_M_RX[MAX_TXRX_DATA + 1]; //+4bytes pro hlavicku
 uint32_t buf_M_TX[MAX_TXRX_DATA + 1];
 uint32_t m2s_buf[MAX_TXRX_DATA]; //
 
-int txArrayWritePosition = 2; //
+
+// --------------------------NEW COMMS------------------------------
+
+#define MAX_TX_BUFFER_SIZE 16384
+#define MAX_DATA_ID 255
+uint8_t tx_buffer[MAX_TX_BUFFER_SIZE] = {0};
+void * tx_register[MAX_DATA_ID] = {NULL};
+
+uint8_t tx_data_count = 0;
+uint8_t * txArrayWritePosition; // 0 je id celeho ramce, 1 je pocet dat obsazenych v ramci
+
+
+void comms_init(){
+	txArrayWritePosition = *(tx_buffer+2);
+}
+
+void purge_tx_register(){
+	memset(tx_register, MULL, sizeof(tx_register));
+}
+
+int tx_buffer_append_int32(uint8_t data_id, uint8_t data_bytes, uint8_t data_count, int data){
+	//check tx_register for same data id, return if existing
+
+
+	// increment total data in buffer tx_data_count
+	tx_buffer[1] += 1;
+
+	// write id, bytes and count
+
+
+	// write integer as 4 uint8_t to tx_buffer
+
+	// move pointer txArrayWritePosition
+}
+
+
+
+
+
+
 
 int s2m_Status; // send to Matlab
 int m2s_Status; // 0...ceka na prijem dat, 1...data prisla, -1...inicializace, 100...nData, 3...xData
 int m2s_ID;
 int m2s_nData_in_bytes;
+
+
+typedef struct __attribute__((packed)){
+	uint8_t data_id;
+	uint8_t data_size;
+	uint8_t data[4];
+	//uint32_t * data_start = (uint8_t *) data;
+} item4B;
+
+//*((uint32_t *)(buffer+4)) = neco;
 
 extern uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len);
 extern void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_values);
@@ -34,11 +83,7 @@ int DataTransmit2MTLB(uint16_t iD, uint8_t *xData, uint16_t nData_in_values) {
 	// prekopirovani dat do bufferu
 
 	((uint16_t*) buf_M_TX)[0] = iD;
-//	((uint16_t*) buf_M_TX)[1] = MAX_TXRX_DATA;
-//	for (int var = 1; var <= MAX_TXRX_DATA; ++var) {
-//		buf_M_TX[var] = var;
-//	}
-//	s2m_Status = CDC_Transmit_FS((uint8_t*) buf_M_TX, MAX_TXRX_DATA * 4 + 4);
+
 	((uint16_t*) buf_M_TX)[1] = nData_in_values;
 	if (nData_in_values > 0)
 			memcpy(buf_M_TX + 1, xData, nData_in_values * 4);

@@ -174,7 +174,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
     // Odeslání teploty jako integer
     int temperatureInt = (int)temperature;
-    SendInt2MTLB(2, &temperatureInt);
+    //SendInt2MTLB(2, &temperatureInt);
 
     int adcIn1Int = (int)adcIn1;
     //SendInt2MTLB(23, &adcIn1Int);
@@ -262,7 +262,7 @@ int main(void)
   MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-
+  comms_init();
 
 	// zapnuti zelene ledky
 	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
@@ -310,6 +310,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+		void * nazevpole[255] = {NULL};
+
+		void * nazevpole2[255];
+		memset(nazevpole2, NULL, 255*sizeof(void *));
 
 		//load_CPU();
 		m2s_Process();
