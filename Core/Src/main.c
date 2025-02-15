@@ -263,6 +263,9 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   comms_init();
+  comms_append_int32(20, 1, 65000);
+  comms_append_int32(20, 1, 65000);
+  comms_send();
 
 	// zapnuti zelene ledky
 	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
@@ -311,10 +314,11 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-		void * nazevpole[255] = {NULL};
+//		void * nazevpole[255] = {NULL};
+//
+//		void * nazevpole2[255];
+//		memset(nazevpole2, NULL, 255*sizeof(void *));
 
-		void * nazevpole2[255];
-		memset(nazevpole2, NULL, 255*sizeof(void *));
 
 		//load_CPU();
 		m2s_Process();
