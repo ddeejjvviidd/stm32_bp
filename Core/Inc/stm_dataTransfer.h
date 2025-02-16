@@ -46,7 +46,7 @@ extern uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len);
 extern void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_values);
 
 void comms_reset_active_buffer(){
-	*((uint16_t *)(comms_active_wr_pointer+1)) = 0;
+	*((uint16_t *)(comms_active_buffer+1)) = 0;
 	//comms_active_buffer[1] = 0;
 	comms_active_wr_pointer = comms_active_buffer+3;
 }

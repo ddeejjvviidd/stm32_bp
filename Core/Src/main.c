@@ -315,9 +315,9 @@ int main(void)
 //		memset(nazevpole2, NULL, 255*sizeof(void *));
 
 
-		comms_append_int32(20, 1, 1);
-		comms_append_int32(21, 1, 2);
-		comms_append_int32(22, 1, 3);
+		comms_append_int32(21, 1, 1111);
+		comms_append_int32(22, 1, 2222);
+		comms_append_int32(23, 1, 3333);
 		comms_send();
 
 		//load_CPU();
