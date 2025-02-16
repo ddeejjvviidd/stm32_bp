@@ -262,11 +262,6 @@ int main(void)
   MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  comms_init();
-  comms_append_int32(20, 1, 65000);
-  comms_append_int32(20, 1, 65000);
-  comms_send();
-
 	// zapnuti zelene ledky
 	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
 
@@ -302,7 +297,7 @@ int main(void)
 
 	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 200);
 
-
+	comms_init();
 
   /* USER CODE END 2 */
 
@@ -319,6 +314,11 @@ int main(void)
 //		void * nazevpole2[255];
 //		memset(nazevpole2, NULL, 255*sizeof(void *));
 
+
+		comms_append_int32(20, 1, 1);
+		comms_append_int32(21, 1, 2);
+		comms_append_int32(22, 1, 3);
+		comms_send();
 
 		//load_CPU();
 		m2s_Process();

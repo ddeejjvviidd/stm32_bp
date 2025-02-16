@@ -46,8 +46,9 @@ extern uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len);
 extern void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_values);
 
 void comms_reset_active_buffer(){
-	comms_active_buffer[1] = 0;
-	comms_active_wr_pointer = comms_active_buffer+2;
+	*((uint16_t *)(comms_active_wr_pointer+1)) = 0;
+	//comms_active_buffer[1] = 0;
+	comms_active_wr_pointer = comms_active_buffer+3;
 }
 
 void comms_init(){
@@ -55,7 +56,7 @@ void comms_init(){
 	comms_prepared_buffer = comms_tx_buffer2;
 
 	comms_reset_active_buffer();
-	comms_prepared_wr_pointer = comms_prepared_buffer+2;
+	comms_prepared_wr_pointer = comms_prepared_buffer+3;
 }
 
 void comms_purge_id_register(){
@@ -67,6 +68,10 @@ void * comms_find_existing_data(uint8_t data_id){
 		return comms_id_register[data_id];
 	}
 	return NULL;
+}
+
+void comms_increment_active_buffer_data(){
+	*((uint16_t *)(comms_active_buffer+1)) += 1;
 }
 
 int comms_append_int32(uint8_t data_id, uint8_t data_count, int data){
@@ -85,7 +90,7 @@ int comms_append_int32(uint8_t data_id, uint8_t data_count, int data){
 	comms_id_register[data_id] = (void *)comms_active_wr_pointer;
 
 	// increment total data in buffer
-	comms_active_buffer[1] += 1;
+	comms_increment_active_buffer_data();
 
 	// write id, bytes and count
 	*comms_active_wr_pointer = data_id;
@@ -129,7 +134,7 @@ int comms_send(){
 		return COMMS_TX_LOCKED;
 	}
 
-	tx_status = COMMS_TX_RUNNING;
+	tx_status = COMMS_INPROGRESS;
 
 	// need to switch buffers
 	comms_switch_buffers();
@@ -137,16 +142,19 @@ int comms_send(){
 
 	// buffer is empty
 	if (comms_prepared_buffer[1] == 0) {
+		tx_status = COMMS_READY;
 		return COMMS_TX_BUFFER_EMPTY;
 	}
 
 	// send data
-	if (CDC_Transmit_FS(comms_prepared_buffer, comms_prepared_wr_pointer - comms_prepared_buffer)) {
-		tx_status = COMMS_TX_FAILED;
+	USBD_StatusTypeDef cdc_return = CDC_Transmit_FS(comms_prepared_buffer, comms_prepared_wr_pointer - comms_prepared_buffer);
+
+	tx_status = COMMS_READY;
+
+	if (cdc_return) {
 		return COMMS_TX_CDC_FAIL;
 	}
 
-	tx_status = COMMS_TX_READY;
 	return COMMS_SUCCESS;
 }
 
@@ -159,14 +167,6 @@ int s2m_Status; // send to Matlab
 int m2s_Status; // 0...ceka na prijem dat, 1...data prisla, -1...inicializace, 100...nData, 3...xData
 int m2s_ID;
 int m2s_nData_in_bytes;
-
-
-typedef struct __attribute__((packed)){
-	uint8_t data_id;
-	uint8_t data_size;
-	uint8_t data[4];
-	//uint32_t * data_start = (uint8_t *) data;
-} item4B;
 
 //*((uint32_t *)(buffer+4)) = neco;
 
