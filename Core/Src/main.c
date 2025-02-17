@@ -84,6 +84,9 @@ float vref_actual = 0.0f;
 
 int numOfCalling = 0;
 
+int temperatureInt = 0;
+int adcIn1Int = 0;
+
 //uint16_t ts_cal1 = *TS_CAL1_ADDR;
 //uint16_t ts_cal2 = *TS_CAL2_ADDR;
 
@@ -110,6 +113,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		//odeslani do matlabu
 		//DataTransmit2MTLB(1, &periodical, 1);
+		//comms_append_int32(1, 1, &periodical);
 	}
 }
 
@@ -173,10 +177,10 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     numOfCalling++;
 
     // Odeslání teploty jako integer
-    int temperatureInt = (int)temperature;
+    temperatureInt = (int)temperature;
     //SendInt2MTLB(2, &temperatureInt);
 
-    int adcIn1Int = (int)adcIn1;
+    adcIn1Int = (int)adcIn1;
     //SendInt2MTLB(23, &adcIn1Int);
 }
 
@@ -314,10 +318,9 @@ int main(void)
 //		void * nazevpole2[255];
 //		memset(nazevpole2, NULL, 255*sizeof(void *));
 
-
-		comms_append_int32(21, 1, 1111);
-		comms_append_int32(22, 1, 2222);
-		comms_append_int32(23, 1, 3333);
+		comms_append_int32(1, 1, &periodical);
+	    comms_append_int32(2, 1, &temperatureInt);
+	    comms_append_int32(23, 1, &adcIn1Int);
 		comms_send();
 
 		//load_CPU();

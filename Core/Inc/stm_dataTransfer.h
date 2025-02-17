@@ -74,17 +74,22 @@ void comms_increment_active_buffer_data(){
 	*((uint16_t *)(comms_active_buffer+1)) += 1;
 }
 
-int comms_append_int32(uint8_t data_id, uint8_t data_count, int data){
+int comms_append_int32(uint8_t data_id, uint8_t data_count, int * data){
+	// dissable interrupts
+//	uint32_t primask = __get_PRIMASK();
+//	__disable_irq();
+
 	//check tx_register for same data id, return if existing
-	if (wr_status) {
-		return COMMS_WR_LOCKED;
-	} else {
-		wr_status = COMMS_INPROGRESS;
+	if (comms_find_existing_data(data_id) != NULL) {
+			return 1;
 	}
 
-	if (comms_find_existing_data(data_id) != NULL) {
-		return 1;
+	if (wr_status) {
+		return COMMS_WR_LOCKED;
 	}
+//	else {
+//		wr_status = COMMS_INPROGRESS;
+//	}
 
 	// save the pointer to new data to register
 	comms_id_register[data_id] = (void *)comms_active_wr_pointer;
@@ -94,16 +99,20 @@ int comms_append_int32(uint8_t data_id, uint8_t data_count, int data){
 
 	// write id, bytes and count
 	*comms_active_wr_pointer = data_id;
-	*(comms_active_wr_pointer+1) = (uint8_t)sizeof(data);
+	*(comms_active_wr_pointer+1) = (uint8_t)sizeof(*data);
 	*(comms_active_wr_pointer+2) = data_count;
 
 	// write integer as 4 uint8_t to tx_buffer
-	*((int *)(comms_active_wr_pointer+3)) = data;
+	*((int *)(comms_active_wr_pointer+3)) = *data;
 
 	// move pointer comms_tx_buffer_wr_pointer
-	comms_active_wr_pointer = (comms_active_wr_pointer+3+sizeof(data));
+	comms_active_wr_pointer = (comms_active_wr_pointer+3+sizeof(*data));
 
 	wr_status = COMMS_READY;
+
+	// restore interrupts
+//	__set_PRIMASK(primask);
+
 	return 0;
 }
 

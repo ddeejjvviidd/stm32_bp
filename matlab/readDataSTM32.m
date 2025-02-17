@@ -4,7 +4,6 @@ function [id, elements, dataBuffer] = readDataSTM32(s)
         % buffer head
         id=0; 
         elements=0; 
-        xData=0;
         
         % elements
         data_id = 0;
