@@ -87,6 +87,8 @@ int numOfCalling = 0;
 int temperatureInt = 0;
 int adcIn1Int = 0;
 
+int call_count = 0;
+
 //uint16_t ts_cal1 = *TS_CAL1_ADDR;
 //uint16_t ts_cal2 = *TS_CAL2_ADDR;
 
@@ -112,8 +114,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		periodical += 1;
 
 		//odeslani do matlabu
-		//DataTransmit2MTLB(1, &periodical, 1);
-		//comms_append_int32(1, 1, &periodical);
+		comms_append_int32(1, 1, &periodical);
 	}
 }
 
@@ -135,7 +136,7 @@ void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_v
 	switch (iD) {
 	case 20:
 		//data odesilam zpet do matlabu
-		//DataTransmit2MTLB(20, xData, nData_in_values);
+
 		break;
 
 	default:
@@ -151,6 +152,8 @@ void myDmaFunction(DMA_HandleTypeDef *_hdma) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     UNUSED(hadc);
+
+    ++call_count;
 
     // Průměrování ADC hodnot
     adcValue = 0.0f;
@@ -178,15 +181,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
     // Odeslání teploty jako integer
     temperatureInt = (int)temperature;
-    //SendInt2MTLB(2, &temperatureInt);
 
     adcIn1Int = (int)adcIn1;
-    //SendInt2MTLB(23, &adcIn1Int);
 
-	comms_append_int32(1, 1, &periodical);
+
     comms_append_int32(2, 1, &temperatureInt);
     comms_append_int32(23, 1, &adcIn1Int);
-	comms_send();
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -199,7 +199,6 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 //	adcValue = adcValue / 100;
 //	adcValueInt = (int) adcValue;
 
-	//SendInt2MTLB(23, &adcValueInt);
 }
 
 void load_CPU() {
@@ -326,7 +325,7 @@ int main(void)
 //		comms_append_int32(1, 1, &periodical);
 //	    comms_append_int32(2, 1, &temperatureInt);
 //	    comms_append_int32(23, 1, &adcIn1Int);
-//		comms_send();
+		comms_send();
 
 		//load_CPU();
 		m2s_Process();

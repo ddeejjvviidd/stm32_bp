@@ -24,6 +24,8 @@ void * comms_id_register[MAX_DATA_ID] = {NULL}; // register of written data id
 uint8_t * comms_active_wr_pointer; // pointer to first empty wr position in active buffer
 uint8_t * comms_prepared_wr_pointer; // same but in tx ready buffer - just for counting the buffer size
 
+int empty = 0;
+
 typedef enum {
 	COMMS_READY,
 	COMMS_INPROGRESS,
@@ -151,6 +153,7 @@ int comms_send(){
 
 	// buffer is empty
 	if (comms_prepared_buffer[1] == 0) {
+		++empty;
 		tx_status = COMMS_READY;
 		return COMMS_TX_BUFFER_EMPTY;
 	}
@@ -176,8 +179,6 @@ int s2m_Status; // send to Matlab
 int m2s_Status; // 0...ceka na prijem dat, 1...data prisla, -1...inicializace, 100...nData, 3...xData
 int m2s_ID;
 int m2s_nData_in_bytes;
-
-//*((uint32_t *)(buffer+4)) = neco;
 
 
 
@@ -213,15 +214,6 @@ int DataTransmit2MTLB(uint16_t iD, uint8_t *xData, uint16_t nData_in_values) {
 	return 0;
 }
 
-int SendData2MTLB(uint16_t iD, uint8_t *xData, uint16_t nData_in_values) {
-	return DataTransmit2MTLB(iD, xData, nData_in_values);
-}
-
-int SendInt2MTLB(uint16_t iD, int *xInt) {
-
-	return DataTransmit2MTLB(iD, (uint8_t*) xInt, 1);
-}
-
 void m2s_Process() {
 	// funkce volana z nekonecne smycky
 
@@ -244,9 +236,9 @@ void m2s_Process() {
 }
 
 void USB_My_Receive(uint8_t *Buf, uint32_t Len) {
+	// call this in usbd_cdc_if.c to CDC_Receive_FS
 
 	// callback na prijem dat
-
 	if (m2s_Status == 0) {
 		// iD
 		m2s_ID = ((uint16_t*) Buf)[0];
