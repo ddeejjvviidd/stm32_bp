@@ -18,7 +18,7 @@ function [id, elements, dataBuffer] = readDataSTM32(s)
         s.ByteOrder = 'little-endian';
 
         if(s.NumBytesAvailable > 3)
-            fprintf("Available bytes: %d\n", s.NumBytesAvailable);
+            %fprintf("Available bytes: %d\n", s.NumBytesAvailable);
             
             % read the buffer head
             id = read(s, 1, "uint8");
@@ -63,7 +63,7 @@ function [id, elements, dataBuffer] = readDataSTM32(s)
                 dataBuffer(i).data = data;
             end
             
-            disp("Data loaded");
+            %disp("Data loaded");
 
             return
         end
