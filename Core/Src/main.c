@@ -328,7 +328,7 @@ int main(void)
 		comms_send();
 
 		//load_CPU();
-		m2s_Process();
+		comms_rx_process();
 
 	}
   /* USER CODE END 3 */

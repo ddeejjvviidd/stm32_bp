@@ -1,4 +1,4 @@
-function writeDataSTM32(s, xData)
+function writeDataSTM32(s, tx_buffer)
     try
         % write(s,iD,"uint16");
         % write(s,nData,"uint16");
@@ -7,7 +7,7 @@ function writeDataSTM32(s, xData)
         % end
         % write(s,xData(1:nData),"uint32");
 
-        write(s, xData(1:length(xData)),"uint8")
+        write(s, tx_buffer(1:length(tx_buffer)),"uint8")
     catch ME
         disp(ME.message)
     end

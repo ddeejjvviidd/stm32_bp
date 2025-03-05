@@ -24,7 +24,7 @@ function [id, elements, dataBuffer] = readDataSTM32(s)
             id = read(s, 1, "uint8");
             elements = read(s, 1, "uint16");
             
-            % read data
+            % read rest of the data
             if elements==0
                 return;
             end
