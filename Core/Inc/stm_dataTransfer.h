@@ -51,7 +51,7 @@ typedef struct {
 	uint8_t data_id;
 	uint8_t data_size;
 	uint8_t data_count;
-	DataValue data[4096];
+	DataValue data[255];
 } CommsData;
 
 extern uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len);
@@ -180,8 +180,8 @@ int comms_send(){
 	return COMMS_SUCCESS;
 }
 
-void comms_rx_callback(uint8_t *buffer, uint32_t length) {
-	// need to call this inside of usbd_cdc_if.c in CDC_Receive_FS()
+void comms_cdc_rx_callback(uint8_t *buffer, uint32_t length) {
+	// call this func inside of usbd_cdc_if.c in CDC_Receive_FS()
 
 	if (rx_status) {
 		// not ready yet
