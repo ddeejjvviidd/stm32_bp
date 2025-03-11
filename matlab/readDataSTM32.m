@@ -1,17 +1,71 @@
-function [iD, nData, xData] = readDataSTM32(s)
+function [id, elements, dataBuffer] = readDataSTM32(s)
     try
-        iD=0; nData=0; xData=0;
-        if(s.NumBytesAvailable > 3)
-            iD = read(s, 1, "uint16");
-            nData = read(s, 1, "uint16");
+        
+        % buffer head
+        id=0; 
+        elements=0; 
+        
+        % elements
+        data_id = 0;
+        data_size = 0; % in bytes
+        data_type = "uint32"; % handing this over to read func
+        data_count = 0;
 
-            if nData==0
-               return;
+        dataBuffer = struct();
+        
+        %flushinput(s); % for some reason I need to flush the buffer before reading
+        flush(s, "input")
+        s.ByteOrder = 'little-endian';
+
+        if(s.NumBytesAvailable > 3)
+            %fprintf("Available bytes: %d\n", s.NumBytesAvailable);
+            
+            % read the buffer head
+            id = read(s, 1, "uint8");
+            elements = read(s, 1, "uint16");
+            
+            % read rest of the data
+            if elements==0
+                return;
+            end
+
+            for i = 1:elements
+
+                data = [];
+
+                % LOAD DATA HEAD
+                % load the data id
+                data_id = read(s, 1, "uint8");
+                % load the byte size
+                data_size = read(s, 1, "uint8");
+                % load the number of data
+                data_count = read(s, 1, "uint8");
+                
+                switch data_size
+                    case 1
+                        data_type = "uint8";
+                    case 2
+                        data_type = "uint16";
+                    case 4
+                        data_type = "uint32";
+                    otherwise
+                        flushinput(s);
+                        error("Unsupported data type: %d bytes", data_size);
+                end
+
+                % LOAD DATA
+                for y = 1:data_count
+                    data(end+1) = read(s, 1, data_type);
+                end
+
+                % APPEND TO dataBuffer
+                dataBuffer(i).data_id = data_id;
+                dataBuffer(i).data = data;
             end
             
-            if isReady(s, nData)
-                xData= read(s, nData, "uint32");
-            end 
+            %disp("Data loaded");
+
+            return
         end
     catch ME
         disp(ME.message)   %             rethrow(ME)

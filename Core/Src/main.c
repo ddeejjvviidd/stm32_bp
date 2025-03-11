@@ -84,6 +84,11 @@ float vref_actual = 0.0f;
 
 int numOfCalling = 0;
 
+int temperatureInt = 0;
+int adcIn1Int = 0;
+
+int call_count = 0;
+
 //uint16_t ts_cal1 = *TS_CAL1_ADDR;
 //uint16_t ts_cal2 = *TS_CAL2_ADDR;
 
@@ -109,7 +114,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		periodical += 1;
 
 		//odeslani do matlabu
-		DataTransmit2MTLB(1, &periodical, 1);
+		comms_append_int32(1, 1, &periodical);
 	}
 }
 
@@ -131,7 +136,7 @@ void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_v
 	switch (iD) {
 	case 20:
 		//data odesilam zpet do matlabu
-		DataTransmit2MTLB(20, xData, nData_in_values);
+
 		break;
 
 	default:
@@ -148,17 +153,19 @@ void myDmaFunction(DMA_HandleTypeDef *_hdma) {
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     UNUSED(hadc);
 
+    ++call_count;
+
     // Průměrování ADC hodnot
     adcValue = 0.0f;
-    //adcIn1 = 0.0f;
+    adcIn1 = 0.0f;
 
     for (int i = 0; i < 100; i++) {
         adcValue += dma_data_buffer[i + 100]; // Použití druhé poloviny DMA bufferu
-        //adcIn1 += dma_data_buffer[i + 1 + 100];
+        adcIn1 += dma_data_buffer[i + 1 + 100];
         i++;
     }
     adcValue /= 50.0f;
-    //adcIn1 /= 50.0f;
+    adcIn1 /= 50.0f;
 
     // Převod ADC hodnoty na napětí
     float adcVoltage = (adcValue / ADC_RESOLUTION) * VREF;
@@ -171,11 +178,15 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     temperature = ((adcVoltage - temp30) * TEMP_DIFF) + 30.0f;
     //temperature = ((110.0 - 30.0)/(TEMP110_CAL_V - TEMP30_CAL_V)) * (adcValue - TEMP30_CAL_V) + 30.0;
     numOfCalling++;
-    // Odeslání teploty jako integer
-    int temperatureInt = (int)temperature;
-    SendInt2MTLB(23, &temperatureInt);
 
-    //int adcIn1Int = (int)adcIn1;
+    // Odeslání teploty jako integer
+    temperatureInt = (int)temperature;
+
+    adcIn1Int = (int)adcIn1;
+
+
+    comms_append_int32(2, 1, &temperatureInt);
+    comms_append_int32(23, 1, &adcIn1Int);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -188,7 +199,6 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 //	adcValue = adcValue / 100;
 //	adcValueInt = (int) adcValue;
 
-	//SendInt2MTLB(23, &adcValueInt);
 }
 
 void load_CPU() {
@@ -260,8 +270,6 @@ int main(void)
   MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-
-
 	// zapnuti zelene ledky
 	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
 
@@ -297,7 +305,7 @@ int main(void)
 
 	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 200);
 
-
+	comms_init();
 
   /* USER CODE END 2 */
 
@@ -309,8 +317,18 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+//		void * nazevpole[255] = {NULL};
+//
+//		void * nazevpole2[255];
+//		memset(nazevpole2, NULL, 255*sizeof(void *));
+//
+//		comms_append_int32(1, 1, &periodical);
+//	    comms_append_int32(2, 1, &temperatureInt);
+//	    comms_append_int32(23, 1, &adcIn1Int);
+		comms_send();
+
 		//load_CPU();
-		m2s_Process();
+		comms_rx_process();
 
 	}
   /* USER CODE END 3 */
