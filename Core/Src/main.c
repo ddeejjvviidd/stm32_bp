@@ -120,29 +120,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 char testdata[10];
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	UNUSED(huart);
-
-//    if(huart == &hlpuart1){
-//    	HAL_UART_Transmit_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-//    	HAL_UART_Receive_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-//    }
-
-}
-
-void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_values) {
-	// funkce volana po prijmu dat
-
-	switch (iD) {
-	case 20:
-		//data odesilam zpet do matlabu
-
-		break;
-
-	default:
-		break;
-	}
-}
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+//	UNUSED(huart);
+//
+////    if(huart == &hlpuart1){
+////    	HAL_UART_Transmit_DMA(&hlpuart1, (uint8_t*)testdata, 10);
+////    	HAL_UART_Receive_DMA(&hlpuart1, (uint8_t*)testdata, 10);
+////    }
+//
+//}
 
 /* ------------------ DMA FUNKCE A CALLBACKY ------------------ */
 void myDmaFunction(DMA_HandleTypeDef *_hdma) {
@@ -306,6 +292,7 @@ int main(void)
 	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 200);
 
 	comms_init();
+	comms_uart_init();
 
   /* USER CODE END 2 */
 
