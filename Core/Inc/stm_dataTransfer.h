@@ -174,7 +174,7 @@ int comms_send() {
 	USBD_StatusTypeDef cdc_return = 0;
 	HAL_StatusTypeDef uart_return = 0;
 
-	if(1){
+	if(0){
 		cdc_return = CDC_Transmit_FS(comms_prepared_buffer, comms_prepared_wr_pointer - comms_prepared_buffer);
 	} else {
 		uart_return = HAL_UART_Transmit(&hlpuart1, comms_prepared_buffer, comms_prepared_wr_pointer - comms_prepared_buffer, 100);
