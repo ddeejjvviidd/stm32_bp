@@ -8,6 +8,8 @@
 #define MAX_RX_BUFFER_SIZE 16384 / 16
 #define MAX_DATA_ID 255
 
+#define START_HEADER 0xABCD
+
 uint8_t comms_tx_buffer1[MAX_TX_BUFFER_SIZE] = { 0 };
 uint8_t comms_tx_buffer2[MAX_TX_BUFFER_SIZE] = { 0 };
 uint8_t *comms_active_buffer; // pointer to wr ready buffer
@@ -61,9 +63,10 @@ typedef struct {
 extern uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len);
 
 void comms_reset_active_buffer() {
-	*((uint16_t*) (comms_active_buffer + 1)) = 0;
-	//comms_active_buffer[1] = 0;
-	comms_active_wr_pointer = comms_active_buffer + 3;
+	*((uint16_t*) (comms_active_buffer)) = START_HEADER; // start bits
+	comms_active_buffer[2] = 0; // buffer id
+	*((uint16_t*) (comms_active_buffer + 3)) = 0; // num of elements
+	comms_active_wr_pointer = comms_active_buffer + 5; // first empty position for data
 }
 
 void comms_init() {
@@ -71,7 +74,7 @@ void comms_init() {
 	comms_prepared_buffer = comms_tx_buffer2;
 
 	comms_reset_active_buffer();
-	comms_prepared_wr_pointer = comms_prepared_buffer + 3;
+	comms_prepared_wr_pointer = comms_prepared_buffer + 5;
 }
 
 void comms_purge_id_register() {
@@ -86,7 +89,7 @@ void* comms_find_existing_data(uint8_t data_id) {
 }
 
 void comms_increment_active_buffer_data() {
-	*((uint16_t*) (comms_active_buffer + 1)) += 1;
+	*((uint16_t*) (comms_active_buffer + 3)) += 1;
 }
 
 int comms_append_int32(uint8_t data_id, uint8_t data_count, int *data) {
@@ -164,8 +167,8 @@ int comms_send() {
 	comms_switch_buffers();
 
 	// buffer is empty
-	if (comms_prepared_buffer[1] == 0) {
-		++empty;
+	if (comms_prepared_buffer[3] == 0) {
+		++empty; //DEBUG
 		tx_status = COMMS_READY;
 		return COMMS_TX_BUFFER_EMPTY;
 	}
@@ -174,7 +177,7 @@ int comms_send() {
 	USBD_StatusTypeDef cdc_return = 0;
 	HAL_StatusTypeDef uart_return = 0;
 
-	if(0){
+	if(1){
 		cdc_return = CDC_Transmit_FS(comms_prepared_buffer, comms_prepared_wr_pointer - comms_prepared_buffer);
 	} else {
 		uart_return = HAL_UART_Transmit(&hlpuart1, comms_prepared_buffer, comms_prepared_wr_pointer - comms_prepared_buffer, 100);

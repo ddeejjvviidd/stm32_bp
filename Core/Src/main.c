@@ -114,7 +114,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		periodical += 1;
 
 		//odeslani do matlabu
-		comms_append_int32(1, 1, &periodical);
+		//comms_append_int32(1, 1, &periodical);
 	}
 }
 
@@ -171,8 +171,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     adcIn1Int = (int)adcIn1;
 
 
-    comms_append_int32(2, 1, &temperatureInt);
-    comms_append_int32(23, 1, &adcIn1Int);
+    //comms_append_int32(2, 1, &temperatureInt);
+    //comms_append_int32(23, 1, &adcIn1Int);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
@@ -312,7 +312,7 @@ int main(void)
 //		comms_append_int32(1, 1, &periodical);
 //	    comms_append_int32(2, 1, &temperatureInt);
 //	    comms_append_int32(23, 1, &adcIn1Int);
-		comms_send();
+		//comms_send();
 
 		//load_CPU();
 		comms_rx_process();
