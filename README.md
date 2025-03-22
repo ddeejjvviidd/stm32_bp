@@ -11,7 +11,34 @@ Seznamování s STM32 Nucleo.
 
 ### Data buffer:
 
-<table border="1">
+<table border="0">
+    <tr>
+        <th colspan="24">uint8_t buf_M_TX</th>
+    </tr>
+    <tr>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>3</td>
+        <td>4</td>
+        <td>5</td>
+        <td>6</td>
+        <td>7</td>
+    </tr>
+    <tr>
+        <th colspan="2"><strong>ID</strong></th>
+        <th colspan="2"><strong>nData</strong></th>
+        <th colspan="4"><em>int1</em></th>
+    </tr>
+    <tr>
+        <td colspan="2"><strong>20</strong></td>
+        <td colspan="2"><strong>5</strong></td>
+        <td colspan="4">val1</td>
+    </tr>
+</table>
+
+
+<table border="0">
     <tr>
         <th colspan="24">uint8_t buf_M_TX</th>
     </tr>
