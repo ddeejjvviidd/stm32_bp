@@ -32,7 +32,7 @@ Seznamování s STM32 Nucleo.
     </tr>
     <tr>
         <td colspan="2"><strong>20</strong></td>
-        <td colspan="2"><strong>5</strong></td>
+        <td colspan="2"><strong>1</strong></td>
         <td colspan="4">val1</td>
     </tr>
 </table>
