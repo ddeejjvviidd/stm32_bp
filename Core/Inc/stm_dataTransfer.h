@@ -9,6 +9,8 @@
 #define MAX_DATA_ID 255
 
 #define START_HEADER 0xABCD
+#define END_CR 0x0D;
+#define END_LF 0x0A;
 
 uint8_t comms_tx_buffer1[MAX_TX_BUFFER_SIZE] = { 0 };
 uint8_t comms_tx_buffer2[MAX_TX_BUFFER_SIZE] = { 0 };
@@ -165,6 +167,11 @@ int comms_send() {
 
 	// need to switch buffers
 	comms_switch_buffers();
+
+	// terminator at the end
+	*comms_prepared_wr_pointer = END_CR;
+	*(comms_prepared_wr_pointer + 1) = END_LF;
+	comms_prepared_wr_pointer += 2;
 
 	// buffer is empty
 	if (comms_prepared_buffer[3] == 0) {

@@ -89,9 +89,6 @@ int adcIn1Int = 0;
 
 int call_count = 0;
 
-//uint16_t ts_cal1 = *TS_CAL1_ADDR;
-//uint16_t ts_cal2 = *TS_CAL2_ADDR;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -114,21 +111,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		periodical += 1;
 
 		//odeslani do matlabu
-		//comms_append_int32(1, 1, &periodical);
+		comms_append_int32(1, 1, &periodical);
+		comms_send();
 	}
 }
 
 char testdata[10];
-
-//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-//	UNUSED(huart);
-//
-////    if(huart == &hlpuart1){
-////    	HAL_UART_Transmit_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-////    	HAL_UART_Receive_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-////    }
-//
-//}
 
 /* ------------------ DMA FUNKCE A CALLBACKY ------------------ */
 void myDmaFunction(DMA_HandleTypeDef *_hdma) {
@@ -312,7 +300,7 @@ int main(void)
 //		comms_append_int32(1, 1, &periodical);
 //	    comms_append_int32(2, 1, &temperatureInt);
 //	    comms_append_int32(23, 1, &adcIn1Int);
-		//comms_send();
+//	    comms_send();
 
 		//load_CPU();
 		comms_rx_process();
