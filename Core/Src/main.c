@@ -112,7 +112,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		//odeslani do matlabu
 		comms_append_int32(1, 1, &periodical);
-		comms_send();
 	}
 }
 
@@ -299,10 +298,11 @@ int main(void)
 //
 //		comms_append_int32(1, 1, &periodical);
 //	    comms_append_int32(2, 1, &temperatureInt);
-//	    comms_append_int32(23, 1, &adcIn1Int);
+	    comms_append_int32(23, 1, &adcIn1Int);
 //	    comms_send();
 
 		//load_CPU();
+		comms_send();
 		comms_rx_process();
 
 	}

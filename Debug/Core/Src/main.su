@@ -13,10 +13,10 @@
 ../Core/Inc/stm_dataTransfer.h:293:6:comms_lpuart_rx_callback	16	static
 ../Core/Inc/stm_dataTransfer.h:303:6:HAL_UART_RxCpltCallback	16	static
 ../Core/Src/main.c:103:6:HAL_TIM_PeriodElapsedCallback	16	static
-../Core/Src/main.c:122:6:myDmaFunction	16	static
-../Core/Src/main.c:127:6:HAL_ADC_ConvCpltCallback	32	static
-../Core/Src/main.c:166:6:HAL_ADC_ConvHalfCpltCallback	16	static
-../Core/Src/main.c:178:6:load_CPU	32	static
-../Core/Src/main.c:212:5:main	16	static
+../Core/Src/main.c:121:6:myDmaFunction	16	static
+../Core/Src/main.c:126:6:HAL_ADC_ConvCpltCallback	32	static
+../Core/Src/main.c:165:6:HAL_ADC_ConvHalfCpltCallback	16	static
+../Core/Src/main.c:177:6:load_CPU	32	static
+../Core/Src/main.c:211:5:main	16	static
 ../Core/Src/main.c:316:6:SystemClock_Config	96	static
 ../Core/Src/main.c:370:6:Error_Handler	4	static,ignoring_inline_asm

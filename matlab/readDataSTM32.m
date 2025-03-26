@@ -1,84 +1,98 @@
-function [id, elements, dataBuffer] = readDataSTM32(s)
+function [id, elements, dataArray] = readDataSTM32(s)
+    persistent accBuffer
+    if isempty(accBuffer)
+        accBuffer = uint8([]);
+    end
+    
     id = 0;
     elements = 0;
-    dataBuffer = struct();
-
-    data_type = "uint32"; % default
+    dataArray = [];
     
     try
-        % reads whole line up to terminator
-        rawData = readline(s);
-        buffer = uint8(char(rawData)); % typecast to uint8
+        newData = read(s, s.NumBytesAvailable, 'uint8');
+        accBuffer = [accBuffer; newData(:)];
         
-        % start bytes
-        if length(buffer) < 5 || buffer(1) ~= 0xCD || buffer(2) ~= 0xAB
-            error("Invalid start sequence");
-        end
-        
-        % read the buffer header
-        id = buffer(3);
-        elements = typecast(buffer(4:5), 'uint16');
-        
-        if elements == 0
-            error("No data packets");
-        end
-
-        
-        pointer = 6; % position of first data head
-        for i = 1:elements
-            
-            if pointer + 2 > length(buffer)
-                error("Poškozený paket");
+        while true
+            % Hledej startovní sekvenci
+            startIdx = find(accBuffer(1:end-1) == 0xCD & accBuffer(2:end) == 0xAB, 1);
+            if isempty(startIdx)
+                break;
             end
-
-            data = [];
             
-            % data head
-            data_id = buffer(pointer);
-            data_size = buffer(pointer + 1);
-            data_count = buffer(pointer + 2);
+            currentBuffer = accBuffer(startIdx:end);
             
-            switch data_size
-                case 1
-                    data_type = "uint8";
-                case 2
-                    data_type = "uint16";
-                case 4
-                    data_type = "uint32";
-                otherwise
-                    error("Unsupported data type: %d bytes", data_size);
+            % Minimální délka hlavičky
+            if length(currentBuffer) < 5
+                break;
             end
-
-            for y = 1:data_count
-                data_start = pointer + 3 + ((y-1) * data_size);
-                data_end = data_start + data_size - 1;
-
-                value = typecast(buffer(data_start:data_end), data_type);
-                data(end+1) = value;
+            
+            % Čtení ID a elements s ochranou
+            id = currentBuffer(3);
+            elements = typecast(currentBuffer(4:5), 'uint16');
+            elements = min(elements, 1000); % Omezení na 1000 elementů
+            
+            % Zpracování paketu
+            [totalLength, dataArray] = processPacketFast(currentBuffer, elements);
+            
+            % Kontrola platnosti totalLength
+            if totalLength > length(currentBuffer)
+                error("Neplatný totalLength: %d > %d", totalLength, length(currentBuffer));
             end
-
-            % APPEND TO dataBuffer
-            dataBuffer(i).data_id = data_id;
-            dataBuffer(i).data = data;
-            pointer = data_end + 1;
+            
+            accBuffer = currentBuffer((totalLength + 1):end);
+            return;
         end
-        
     catch ME
-        flush(s); % Vyčisti buffer při chybě
+        accBuffer = uint8([]);
         rethrow(ME);
     end
 end
 
-function statusIsReady = isReady(s, nX)
-
-    for n = 0:nX
-        pause(0.01);
-        if(s.NumBytesAvailable>=(nX*4))
-            statusIsReady = 1;
-            return;
+function [totalLength, dataArray] = processPacketFast(buffer, elements)
+    totalLength = 5;
+    dataArray = struct('data_id', {}, 'data', {});
+    pointer = 6;
+    
+    for i = 1:elements
+        % Kontrola dostupnosti hlavičky
+        if pointer + 2 > length(buffer)
+            error("Neplatná hlavička (element %d)", i);
         end
+        
+        data_id = buffer(pointer);
+        data_size = double(buffer(pointer + 1)); % ← Konvertuj na double
+        data_count = double(buffer(pointer + 2)); % ← Konvertuj na double
+        
+        % Kritická validace data_count
+        if data_count == 0
+            error("Neplatný data_count: 0 (element %d)", i);
+        end
+        
+        % Omezení data_count na maximálně 65535
+        data_count = min(data_count, 65535);
+        
+        % Výpočet pozic
+        dataStart = pointer + 3;
+        dataEnd = dataStart + data_size * data_count - 1;
+        
+        if dataEnd > length(buffer)
+            error("Poškozená data (element %d)", i);
+        end
+        
+        % Konverze dat
+        data = typecast(buffer(dataStart:dataEnd), getDataType(data_size));
+        dataArray(end+1) = struct('data_id', data_id, 'data', data);
+        
+        pointer = dataEnd + 1;
+        totalLength = totalLength + 3 + data_size * data_count;
     end
+end
 
-    statusIsReady = 0;
-
+function dtype = getDataType(size)
+    switch size
+        case 1, dtype = 'uint8';
+        case 2, dtype = 'uint16';
+        case 4, dtype = 'uint32';
+        otherwise, error("Nepodporovaný typ");
+    end
 end
