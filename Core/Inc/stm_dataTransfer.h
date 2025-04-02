@@ -26,6 +26,7 @@ uint8_t *comms_rx_active_buffer;
 uint8_t *comms_rx_read_pointer;
 
 int empty = 0;
+int full = 0;
 
 typedef enum {
 	COMMS_READY,
@@ -178,6 +179,8 @@ int comms_send() {
 		++empty; //DEBUG
 		tx_status = COMMS_READY;
 		return COMMS_TX_BUFFER_EMPTY;
+	} else {
+		full++;
 	}
 
 	// send data
