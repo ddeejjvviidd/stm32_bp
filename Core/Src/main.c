@@ -115,6 +115,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		//odeslani do matlabu
 		comms_append_int32(1, 1, &periodical);
 	}
+
+	if (htim == &htim3) {
+			HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+		}
 }
 
 char testdata[10];
@@ -127,6 +131,7 @@ void myDmaFunction(DMA_HandleTypeDef *_hdma) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     UNUSED(hadc);
+    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 
     ++call_count;
 
@@ -134,9 +139,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     adcValue = 0.0f;
     adcIn1 = 0.0f;
 
-    for (int i = 0; i < 100; i++) {
-        adcValue += dma_data_buffer[i + 100]; // Použití druhé poloviny DMA bufferu
-        adcIn1 += dma_data_buffer[i + 1 + 100];
+    for (int i = 0; i < 10; i++) {
+        adcValue += dma_data_buffer[i + 10]; // Použití druhé poloviny DMA bufferu
+        adcIn1 += dma_data_buffer[i + 1 + 10];
         i++;
     }
     adcValue /= 50.0f;
@@ -273,13 +278,14 @@ int main(void)
 	dma_toc = htim5.Instance->CNT;
 	toc = htim5.Instance->CNT;
 
-	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 
 	HAL_Delay(50);
 
 
-	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 200);
+	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 20);
+
+	HAL_TIM_Base_Start_IT(&htim3);
 
 	comms_init();
 	comms_uart_init();
