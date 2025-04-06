@@ -23,9 +23,9 @@ void *comms_tx_data_id_register[MAX_DATA_ID] = { NULL }; // register of written 
 uint8_t comms_rx_buffer1[MAX_RX_BUFFER_SIZE] = { 0 }; // buffer for rx data
 uint8_t comms_rx_buffer2[MAX_RX_BUFFER_SIZE] = { 0 };
 uint8_t *comms_rx_active_buffer; // buffer which is being used to load data to
-uint8_t *comms_rx_active_wr_pointer; // pointer to first empty position in active buffer
+uint8_t *comms_rx_active_rd_pointer;
 uint8_t *comms_rx_prepared_buffer; // pointer to buffer of received data
-uint8_t *comms_rx_prepared_wr_pointer; // -||-
+uint8_t *comms_rx_prepared_rd_pointer;
 // no need for data id register here
 
 int empty = 0; //TODO: delete
@@ -83,7 +83,7 @@ void comms_reset_active_tx_buffer() {
 }
 
 void comms_reset_active_rx_buffer() {
-	return;
+	comms_rx_active_rd_pointer = comms_rx_active_buffer;
 }
 
 void comms_uart_init() {
@@ -107,7 +107,7 @@ void comms_init() {
 	comms_rx_prepared_buffer = comms_rx_buffer2;
 
 	comms_reset_active_rx_buffer();
-	comms_rx_prepared_wr_pointer;
+	comms_rx_prepared_rd_pointer = comms_rx_prepared_buffer + 5;
 }
 
 void comms_purge_id_register() {
@@ -236,6 +236,26 @@ int comms_send() {
 	return COMMS_SUCCESS;
 }
 
+void comms_switch_rx_buffers(){
+	// dissable interrupts
+	uint32_t primask = __get_PRIMASK();
+	__disable_irq();
+
+	// switch rx buffers
+	uint8_t *_temp = comms_rx_prepared_buffer;
+	comms_rx_prepared_buffer = comms_rx_active_buffer;
+	comms_rx_active_buffer = _temp;
+
+	// set pointer to the prepared buffer data
+	comms_rx_prepared_rd_pointer = comms_rx_active_rd_pointer;
+
+	// prepare the new active buffer and pointers
+	comms_reset_active_rx_buffer();
+
+	// restore interrupts
+	__set_PRIMASK(primask);
+}
+
 void comms_cdc_rx_callback(uint8_t *buffer, uint32_t length) {
 	// call this func inside of usbd_cdc_if.c in CDC_Receive_FS()
 
@@ -250,15 +270,17 @@ void comms_cdc_rx_callback(uint8_t *buffer, uint32_t length) {
 	}
 
 	if (length < 3) {
-		// invalid
+		// invalid buffer
 		return;
 	}
 
 	rx_status = COMMS_INPROGRESS;
 
-	//comms_rx_buffer = buffer;
-	memcpy(comms_rx_buffer1, buffer, length);
-	comms_rx_read_pointer = comms_rx_buffer1 + 3;
+	//copy to the active buffer
+	memcpy(comms_rx_active_buffer, buffer, length);
+	comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
+
+	comms_switch_rx_buffers();
 
 	rx_status = COMMS_RECEIVED;
 }
@@ -286,27 +308,27 @@ void comms_rx_process() {
 		return;
 	}
 
-	if (comms_rx_buffer1[0] == 0) {
-		uint16_t elements = *((uint16_t*) (comms_rx_buffer1 + 1));
+	if (comms_rx_prepared_buffer[0] == 0) {
+		uint16_t elements = *((uint16_t*) (comms_rx_prepared_buffer + 3));
 
 		for (; elements > 0; --elements) {
 			CommsData data;
-			data.data_id = *comms_rx_read_pointer;
-			data.data_size = *(comms_rx_read_pointer + 1);
-			data.data_count = *(comms_rx_read_pointer + 2);
+			data.data_id = *comms_rx_prepared_rd_pointer;
+			data.data_size = *(comms_rx_prepared_rd_pointer + 1);
+			data.data_count = *(comms_rx_prepared_rd_pointer + 2);
 
 			for (uint8_t x = 0; x < data.data_count; ++x) {
 				switch (data.data_size) {
 				case 1:
-					data.data[x].u8 = *(comms_rx_read_pointer + 3);
+					data.data[x].u8 = *(comms_rx_prepared_rd_pointer + 3);
 					break;
 				case 2:
 					data.data[x].u16 =
-							*((uint16_t*) (comms_rx_read_pointer + 3));
+							*((uint16_t*) (comms_rx_prepared_rd_pointer + 3));
 					break;
 				case 4:
 					data.data[x].u32 =
-							*((uint32_t*) (comms_rx_read_pointer + 3));
+							*((uint32_t*) (comms_rx_prepared_rd_pointer + 3));
 					break;
 				default:
 					return;
@@ -315,7 +337,7 @@ void comms_rx_process() {
 
 			comms_data_handler(&data);
 
-			comms_rx_read_pointer = (comms_rx_read_pointer + 3
+			comms_rx_prepared_rd_pointer = (comms_rx_prepared_rd_pointer + 3
 					+ (data.data_size * data.data_count));
 		}
 	}
@@ -325,6 +347,12 @@ void comms_rx_process() {
 
 
 void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
+
+	if (comms_selected_interface != COMMS_UART){
+		// quit if USB OTG is in use
+		return;
+	}
+
 	// load 2 start bytes and head 3 bytes, 5 total
 	// get number of elements
 	// FOR ELEMENT LOOP:

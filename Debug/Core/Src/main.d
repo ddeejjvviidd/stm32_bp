@@ -38,7 +38,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Core/Inc/usart.h ../Core/Inc/tim.h ../USB_DEVICE/App/usb_device.h \
  ../Middlewares/ST/STM32_USB_Device_Library/Core/Inc/usbd_def.h \
  ../USB_DEVICE/Target/usbd_conf.h ../Core/Inc/gpio.h \
- ../Core/Inc/stm_dataTransfer.h ../Drivers/CMSIS/Include/cmsis_gcc.h
+ ../Core/Inc/stm_dataTransfer.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Core/Inc/stm32l4xx_hal_conf.h:
@@ -85,4 +85,3 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../USB_DEVICE/Target/usbd_conf.h:
 ../Core/Inc/gpio.h:
 ../Core/Inc/stm_dataTransfer.h:
-../Drivers/CMSIS/Include/cmsis_gcc.h:
