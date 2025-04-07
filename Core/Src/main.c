@@ -117,7 +117,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 
 	if (htim == &htim3) {
-			HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+			//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
 		}
 }
 
@@ -131,7 +131,7 @@ void myDmaFunction(DMA_HandleTypeDef *_hdma) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     UNUSED(hadc);
-    HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
+    //HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 
     ++call_count;
 

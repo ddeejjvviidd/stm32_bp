@@ -36,7 +36,7 @@ typedef enum {
 	COMMS_USB_OTG,
 } comms_interface;
 
-comms_interface comms_selected_interface = COMMS_UART;
+comms_interface comms_selected_interface = COMMS_USB_OTG;
 
 typedef enum {
 	COMMS_READY,
@@ -83,6 +83,8 @@ void comms_reset_active_tx_buffer() {
 }
 
 void comms_reset_active_rx_buffer() {
+	comms_rx_active_buffer[2] = 0;
+	*((uint16_t*) (comms_rx_active_buffer + 3)) = 0;
 	comms_rx_active_rd_pointer = comms_rx_active_buffer;
 }
 
@@ -308,7 +310,7 @@ void comms_rx_process() {
 		return;
 	}
 
-	if (comms_rx_prepared_buffer[0] == 0) {
+	if (comms_rx_prepared_buffer[2] == 0) {
 		uint16_t elements = *((uint16_t*) (comms_rx_prepared_buffer + 3));
 
 		for (; elements > 0; --elements) {
