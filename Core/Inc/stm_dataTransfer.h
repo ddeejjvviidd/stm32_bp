@@ -36,14 +36,12 @@ typedef enum {
 	COMMS_USB_OTG,
 } comms_interface;
 
-comms_interface comms_selected_interface = COMMS_USB_OTG;
+comms_interface comms_selected_interface = COMMS_UART;
 
 typedef enum {
 	COMMS_READY,
 	COMMS_INPROGRESS,
-	COMMS_RECEIVED,
-	COMMS_UART_HEAD,
-	COMMS_UART_DATA,
+	COMMS_RECEIVED
 } comms_state;
 
 comms_state wr_status = COMMS_READY;
@@ -59,6 +57,15 @@ typedef enum {
 	COMMS_WR_LOCKED, // active buffer is already being written to
 	COMMS_TX_UART_FAIL, // UART func for data transfer returned anything but HAL_OK
 } comms_return_codes;
+
+typedef enum {
+	COMMS_UART_HEAD,
+	COMMS_UART_PACKET_HEAD,
+	COMMS_UART_PACKET_DATA,
+	COMMS_UART_COMPLETE
+} comms_uart_rx_state;
+
+comms_uart_rx_state uart_rx_state = COMMS_UART_HEAD;
 
 typedef union {
 	uint8_t u8;
@@ -83,8 +90,12 @@ void comms_reset_active_tx_buffer() {
 }
 
 void comms_reset_active_rx_buffer() {
+	//reset whole head
+	comms_rx_active_buffer[0] = 0;
+	comms_rx_active_buffer[1] = 0;
 	comms_rx_active_buffer[2] = 0;
 	*((uint16_t*) (comms_rx_active_buffer + 3)) = 0;
+	//reset pointer
 	comms_rx_active_rd_pointer = comms_rx_active_buffer;
 }
 
@@ -350,16 +361,74 @@ void comms_rx_process() {
 
 void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
 
+	static int elements;
+	static int data_total_length;
+	static HAL_StatusTypeDef rcode;
+	UNUSED(rcode);
+
 	if (comms_selected_interface != COMMS_UART){
 		// quit if USB OTG is in use
 		return;
 	}
 
-	// load 2 start bytes and head 3 bytes, 5 total
-	// get number of elements
-	// FOR ELEMENT LOOP:
-	//		load packet head
-	//		load data based on that parameters
+	switch (uart_rx_state) {
+		case COMMS_UART_HEAD:
+			//check start bytes
+			if (*((uint16_t*) (comms_rx_active_buffer)) != START_HEADER) {
+				//corrupted buffer
+				comms_uart_init();
+				break;
+			}
+
+			//load num of elements
+			elements = *((uint16_t*) (comms_rx_active_buffer + 3));
+
+			//increment pointer
+			comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
+
+			//set callback for loading packet head
+			rcode = HAL_UART_Receive_IT(&hlpuart1, comms_rx_active_rd_pointer, 3);
+			uart_rx_state = COMMS_UART_PACKET_HEAD;
+
+			break;
+
+		case COMMS_UART_PACKET_HEAD:
+			//check data size and data count
+			data_total_length = (*(comms_rx_prepared_rd_pointer + 1)) + (*(comms_rx_prepared_rd_pointer + 2));
+
+			//increment pointer
+			comms_rx_active_rd_pointer = comms_rx_active_rd_pointer + 3;
+
+			//set callback
+			rcode = HAL_UART_Receive_IT(&hlpuart1, comms_rx_active_rd_pointer, data_total_length);
+			uart_rx_state = COMMS_UART_PACKET_DATA;
+
+			break;
+
+		case COMMS_UART_PACKET_DATA:
+			//increment pointer
+			comms_rx_active_rd_pointer = comms_rx_active_rd_pointer + data_total_length;
+
+			--elements;
+
+			//repeat packet_head if not all
+			if(elements > 0) {
+				//load next packet head
+				HAL_StatusTypeDef rcode = HAL_UART_Receive_IT(&hlpuart1, comms_rx_active_rd_pointer, 3);
+				UNUSED(rcode);
+				uart_rx_state = COMMS_UART_PACKET_HEAD;
+			} else {
+				//complete
+				comms_switch_rx_buffers();
+				rx_status = COMMS_RECEIVED;
+				uart_rx_state = COMMS_UART_HEAD;
+			}
+
+			break;
+
+		default:
+			break;
+	}
 
 }
 
