@@ -73,6 +73,14 @@ typedef struct {
 	DataValue data[255];
 } CommsData;
 
+extern comms_interface comms_selected_interface;
+
+extern comms_state wr_status;
+extern comms_state tx_status;
+extern comms_state rx_status;
+
+extern comms_uart_rx_state uart_rx_state;
+
 
 extern uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len);
 

@@ -168,7 +168,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
     full_adc++;
 
-    //comms_append_int32(2, 1, &temperatureInt);
+    comms_append_int32(2, 1, &temperatureInt);
     comms_append_int32(23, 1, &adcIn1Int);
 }
 
@@ -301,16 +301,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
-//		void * nazevpole[255] = {NULL};
-//
-//		void * nazevpole2[255];
-//		memset(nazevpole2, NULL, 255*sizeof(void *));
-//
-//		comms_append_int32(1, 1, &periodical);
-//	    comms_append_int32(2, 1, &temperatureInt);
-
-//	    comms_send();
 
 		//load_CPU();
 		comms_send();

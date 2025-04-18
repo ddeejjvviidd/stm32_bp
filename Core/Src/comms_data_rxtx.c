@@ -3,8 +3,6 @@
 #include "comms_data_rxtx.h"
 #include "usart.h"
 
-// --------------------------NEW COMMS------------------------------
-
 uint8_t comms_tx_buffer1[MAX_TX_BUFFER_SIZE] = { 0 }; // buffer for tx data
 uint8_t comms_tx_buffer2[MAX_TX_BUFFER_SIZE] = { 0 };
 uint8_t *comms_tx_active_buffer; // pointer to wr ready buffer
@@ -87,7 +85,7 @@ void comms_init() {
 
 void comms_purge_id_register() {
 	// reset the evidence of existing data packets in tx buffer
-	memset(comms_tx_data_id_register, NULL, sizeof(comms_tx_data_id_register));
+	memset(comms_tx_data_id_register, 0x0, sizeof(comms_tx_data_id_register));
 }
 
 
