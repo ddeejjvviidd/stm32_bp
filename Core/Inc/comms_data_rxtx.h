@@ -12,7 +12,9 @@
 #define END_CR 0x0D;
 #define END_LF 0x0A;
 
-uint8_t comms_tx_buffer1[MAX_TX_BUFFER_SIZE] = { 0 };
+#define ALLOW_TX_APPEND_DUPLICITE_DATA_ID 0
+
+uint8_t comms_tx_buffer1[MAX_TX_BUFFER_SIZE] = { 0 }; // buffer for tx data
 uint8_t comms_tx_buffer2[MAX_TX_BUFFER_SIZE] = { 0 };
 uint8_t *comms_tx_active_buffer; // pointer to wr ready buffer
 uint8_t *comms_tx_active_wr_pointer; // pointer to first empty wr position in active buffer
@@ -24,12 +26,8 @@ uint8_t comms_rx_buffer1[MAX_RX_BUFFER_SIZE] = { 0 }; // buffer for rx data
 uint8_t comms_rx_buffer2[MAX_RX_BUFFER_SIZE] = { 0 };
 uint8_t *comms_rx_active_buffer; // buffer which is being used to load data to
 uint8_t *comms_rx_active_rd_pointer;
-uint8_t *comms_rx_prepared_buffer; // pointer to buffer of received data
+uint8_t *comms_rx_prepared_buffer; // pointer to buffer of ready to read received data
 uint8_t *comms_rx_prepared_rd_pointer;
-// no need for data id register here
-
-int empty = 0; //TODO: delete
-int full = 0; //TODO: delete
 
 typedef enum {
 	COMMS_UART,
@@ -56,6 +54,7 @@ typedef enum {
 	COMMS_TX_LOCKED, // tx function is already running elsewhere
 	COMMS_WR_LOCKED, // active buffer is already being written to
 	COMMS_TX_UART_FAIL, // UART func for data transfer returned anything but HAL_OK
+	COMMS_DATA_ID_EXISTS, // user tried to append a data_id which already is in the tx buffer
 } comms_return_codes;
 
 typedef enum {
@@ -80,38 +79,51 @@ typedef struct {
 	DataValue data[255];
 } CommsData;
 
+
 extern uint8_t CDC_Transmit_FS(uint8_t *Buf, uint16_t Len);
 
+
 void comms_reset_active_tx_buffer() {
-	*((uint16_t*) (comms_tx_active_buffer)) = START_HEADER; // start bits
-	comms_tx_active_buffer[2] = 0; // buffer id
-	*((uint16_t*) (comms_tx_active_buffer + 3)) = 0; // num of elements
-	comms_tx_active_wr_pointer = comms_tx_active_buffer + 5; // first empty position for data
+	// write start bytes
+	*((uint16_t*) (comms_tx_active_buffer)) = START_HEADER;
+	// reset buffer id
+	comms_tx_active_buffer[2] = 0;
+	//reset number of elements
+	*((uint16_t*) (comms_tx_active_buffer + 3)) = 0;
+	// set pointer to first position where data elements can be writen to
+	comms_tx_active_wr_pointer = comms_tx_active_buffer + 5;
 }
 
+
 void comms_reset_active_rx_buffer() {
-	//reset whole head
+	//reset whole head to correctly detect next incoming buffer
 	comms_rx_active_buffer[0] = 0;
 	comms_rx_active_buffer[1] = 0;
 	comms_rx_active_buffer[2] = 0;
-	*((uint16_t*) (comms_rx_active_buffer + 3)) = 0;
-	//reset pointer
-	comms_rx_active_rd_pointer = comms_rx_active_buffer;
+	*((uint16_t*) (comms_rx_active_buffer + 3)) = 0; // reset number of data packets inside the buffer
+	comms_rx_active_rd_pointer = comms_rx_active_buffer; // reset the active pointer
 }
 
+
 void comms_uart_init() {
+	// reset the state
+	uart_rx_state = COMMS_UART_HEAD;
+	// set callback for incoming data buffer head
 	HAL_StatusTypeDef rcode = HAL_UART_Receive_IT(&hlpuart1, comms_rx_active_buffer,
 			5);
 	UNUSED(rcode);
 }
 
+
 void comms_init() {
+	// init TX
 	comms_tx_active_buffer = comms_tx_buffer1;
 	comms_tx_prepared_buffer = comms_tx_buffer2;
 
 	comms_reset_active_tx_buffer();
-	comms_tx_prepared_wr_pointer = comms_tx_prepared_buffer + 5;
+	comms_tx_prepared_wr_pointer = comms_tx_prepared_buffer + 5; // set pointer to first position of data elements ready for transfer
 
+	// init RX
 	if (comms_selected_interface == COMMS_UART){
 		comms_uart_init();
 	}
@@ -120,32 +132,35 @@ void comms_init() {
 	comms_rx_prepared_buffer = comms_rx_buffer2;
 
 	comms_reset_active_rx_buffer();
-	comms_rx_prepared_rd_pointer = comms_rx_prepared_buffer + 5;
+	comms_rx_prepared_rd_pointer = comms_rx_prepared_buffer + 5; // set pointer to first position of readable data elements
 }
 
+
 void comms_purge_id_register() {
+	// reset the evidence of existing data packets in tx buffer
 	memset(comms_tx_data_id_register, NULL, sizeof(comms_tx_data_id_register));
 }
 
+
 void* comms_find_existing_data(uint8_t data_id) {
+	// returns pointer to existing data packet with this data_id, or NULL
 	if (comms_tx_data_id_register[data_id] != NULL) {
 		return comms_tx_data_id_register[data_id];
 	}
 	return NULL;
 }
 
+
 void comms_increment_active_buffer_data() {
+	// increments total number of data elements in active tx buffer.
 	*((uint16_t*) (comms_tx_active_buffer + 3)) += 1;
 }
 
-int comms_append_int32(uint8_t data_id, uint8_t data_count, int *data) {
-	// dissable interrupts
-//	uint32_t primask = __get_PRIMASK();
-//	__disable_irq();
 
+int comms_append_int32(uint8_t data_id, uint8_t data_count, int *data) {
 	//check tx_register for same data id, return if existing
-	if (comms_find_existing_data(data_id) != NULL) {
-		return 1;
+	if (comms_find_existing_data(data_id) != NULL && !ALLOW_TX_APPEND_DUPLICITE_DATA_ID) {
+		return COMMS_DATA_ID_EXISTS;
 	}
 
 	if (wr_status) {
@@ -174,11 +189,9 @@ int comms_append_int32(uint8_t data_id, uint8_t data_count, int *data) {
 
 	wr_status = COMMS_READY;
 
-	// restore interrupts
-//	__set_PRIMASK(primask);
-
 	return 0;
 }
+
 
 void comms_switch_tx_buffers() {
 	// dissable interrupts
@@ -201,6 +214,7 @@ void comms_switch_tx_buffers() {
 	__set_PRIMASK(primask);
 }
 
+
 int comms_send() {
 
 	if (tx_status > 0) {
@@ -219,11 +233,8 @@ int comms_send() {
 
 	// buffer is empty
 	if (comms_tx_prepared_buffer[3] == 0) {
-		++empty; //DEBUG
 		tx_status = COMMS_READY;
 		return COMMS_TX_BUFFER_EMPTY;
-	} else {
-		full++;
 	}
 
 	// send data
@@ -249,17 +260,21 @@ int comms_send() {
 	return COMMS_SUCCESS;
 }
 
+
 void comms_switch_rx_buffers(){
 	// dissable interrupts
 	uint32_t primask = __get_PRIMASK();
 	__disable_irq();
+
+	// set read pointer to first data packet head
+	comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
 
 	// switch rx buffers
 	uint8_t *_temp = comms_rx_prepared_buffer;
 	comms_rx_prepared_buffer = comms_rx_active_buffer;
 	comms_rx_active_buffer = _temp;
 
-	// set pointer to the prepared buffer data
+	// switch pointers
 	comms_rx_prepared_rd_pointer = comms_rx_active_rd_pointer;
 
 	// prepare the new active buffer and pointers
@@ -268,6 +283,7 @@ void comms_switch_rx_buffers(){
 	// restore interrupts
 	__set_PRIMASK(primask);
 }
+
 
 void comms_cdc_rx_callback(uint8_t *buffer, uint32_t length) {
 	// call this func inside of usbd_cdc_if.c in CDC_Receive_FS()
@@ -291,11 +307,11 @@ void comms_cdc_rx_callback(uint8_t *buffer, uint32_t length) {
 
 	//copy to the active buffer
 	memcpy(comms_rx_active_buffer, buffer, length);
-	comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
 	comms_switch_rx_buffers();
 
 	rx_status = COMMS_RECEIVED;
 }
+
 
 __weak void comms_data_handler(CommsData *data) {
 
@@ -314,6 +330,7 @@ __weak void comms_data_handler(CommsData *data) {
 	}
 
 }
+
 
 void comms_rx_process() {
 	if (!rx_status) {
@@ -419,7 +436,6 @@ void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
 
 			if (uart_elements == 0) {
 				//complete
-				comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
 				comms_switch_rx_buffers();
 				rx_status = COMMS_RECEIVED;
 
@@ -441,6 +457,7 @@ void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
 	}
 
 }
+
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	// user defined __weak callback from stm32l4xx_hal_uart.c
