@@ -292,7 +292,6 @@ void comms_cdc_rx_callback(uint8_t *buffer, uint32_t length) {
 	//copy to the active buffer
 	memcpy(comms_rx_active_buffer, buffer, length);
 	comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
-
 	comms_switch_rx_buffers();
 
 	rx_status = COMMS_RECEIVED;
@@ -361,7 +360,7 @@ void comms_rx_process() {
 
 void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
 
-	static int elements;
+	static int uart_elements;
 	static int data_total_length;
 	static HAL_StatusTypeDef rcode;
 	UNUSED(rcode);
@@ -381,7 +380,7 @@ void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
 			}
 
 			//load num of elements
-			elements = *((uint16_t*) (comms_rx_active_buffer + 3));
+			uart_elements = *((uint16_t*) (comms_rx_active_buffer + 3));
 
 			//increment pointer
 			comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
@@ -394,7 +393,7 @@ void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
 
 		case COMMS_UART_PACKET_HEAD:
 			//check data size and data count
-			data_total_length = (*(comms_rx_prepared_rd_pointer + 1)) + (*(comms_rx_prepared_rd_pointer + 2));
+			data_total_length = (*(comms_rx_active_rd_pointer + 1)) * (*(comms_rx_active_rd_pointer + 2));
 
 			//increment pointer
 			comms_rx_active_rd_pointer = comms_rx_active_rd_pointer + 3;
@@ -409,20 +408,30 @@ void comms_lpuart_rx_callback(UART_HandleTypeDef *huart) {
 			//increment pointer
 			comms_rx_active_rd_pointer = comms_rx_active_rd_pointer + data_total_length;
 
-			--elements;
-
 			//repeat packet_head if not all
-			if(elements > 0) {
+			if(uart_elements > 0) {
 				//load next packet head
-				HAL_StatusTypeDef rcode = HAL_UART_Receive_IT(&hlpuart1, comms_rx_active_rd_pointer, 3);
 				UNUSED(rcode);
 				uart_rx_state = COMMS_UART_PACKET_HEAD;
-			} else {
+				--uart_elements;
+			}
+
+			if (uart_elements == 0) {
 				//complete
+				comms_rx_active_rd_pointer = comms_rx_active_buffer + 5;
 				comms_switch_rx_buffers();
 				rx_status = COMMS_RECEIVED;
+
+				//reset uart
 				uart_rx_state = COMMS_UART_HEAD;
+				uart_elements = 0;
+				data_total_length = 0;
+				comms_uart_init();
+				break;
 			}
+
+			HAL_StatusTypeDef rcode = HAL_UART_Receive_IT(&hlpuart1, comms_rx_active_rd_pointer, 3);
+			UNUSED(rcode);
 
 			break;
 
