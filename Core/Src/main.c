@@ -27,8 +27,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "stm_dataTransfer.h"
+
+#include "comms_data_rxtx.h"
 #include "math.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -89,8 +91,7 @@ int adcIn1Int = 0;
 
 int call_count = 0;
 
-//uint16_t ts_cal1 = *TS_CAL1_ADDR;
-//uint16_t ts_cal2 = *TS_CAL2_ADDR;
+int full_adc = 0;
 
 /* USER CODE END PV */
 
@@ -116,33 +117,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		//odeslani do matlabu
 		comms_append_int32(1, 1, &periodical);
 	}
+
+	if (htim == &htim3) {
+			//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+		}
 }
 
 char testdata[10];
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	UNUSED(huart);
-
-//    if(huart == &hlpuart1){
-//    	HAL_UART_Transmit_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-//    	HAL_UART_Receive_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-//    }
-
-}
-
-void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_values) {
-	// funkce volana po prijmu dat
-
-	switch (iD) {
-	case 20:
-		//data odesilam zpet do matlabu
-
-		break;
-
-	default:
-		break;
-	}
-}
 
 /* ------------------ DMA FUNKCE A CALLBACKY ------------------ */
 void myDmaFunction(DMA_HandleTypeDef *_hdma) {
@@ -152,6 +133,7 @@ void myDmaFunction(DMA_HandleTypeDef *_hdma) {
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     UNUSED(hadc);
+    //HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 
     ++call_count;
 
@@ -159,9 +141,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
     adcValue = 0.0f;
     adcIn1 = 0.0f;
 
-    for (int i = 0; i < 100; i++) {
-        adcValue += dma_data_buffer[i + 100]; // Použití druhé poloviny DMA bufferu
-        adcIn1 += dma_data_buffer[i + 1 + 100];
+    for (int i = 0; i < 10; i++) {
+        adcValue += dma_data_buffer[i + 10]; // Použití druhé poloviny DMA bufferu
+        adcIn1 += dma_data_buffer[i + 1 + 10];
         i++;
     }
     adcValue /= 50.0f;
@@ -184,6 +166,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
     adcIn1Int = (int)adcIn1;
 
+    full_adc++;
 
     comms_append_int32(2, 1, &temperatureInt);
     comms_append_int32(23, 1, &adcIn1Int);
@@ -297,15 +280,17 @@ int main(void)
 	dma_toc = htim5.Instance->CNT;
 	toc = htim5.Instance->CNT;
 
-	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 
 	HAL_Delay(50);
 
 
-	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 200);
+	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 20);
+
+	HAL_TIM_Base_Start_IT(&htim3);
 
 	comms_init();
+	comms_uart_init();
 
   /* USER CODE END 2 */
 
@@ -317,17 +302,8 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-//		void * nazevpole[255] = {NULL};
-//
-//		void * nazevpole2[255];
-//		memset(nazevpole2, NULL, 255*sizeof(void *));
-//
-//		comms_append_int32(1, 1, &periodical);
-//	    comms_append_int32(2, 1, &temperatureInt);
-//	    comms_append_int32(23, 1, &adcIn1Int);
-		comms_send();
-
 		//load_CPU();
+		comms_send();
 		comms_rx_process();
 
 	}
