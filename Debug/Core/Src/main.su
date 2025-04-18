@@ -10,10 +10,10 @@
 ../Core/Inc/stm_dataTransfer.h:204:5:comms_send	16	static
 ../Core/Inc/stm_dataTransfer.h:252:6:comms_switch_rx_buffers	24	static,ignoring_inline_asm
 ../Core/Inc/stm_dataTransfer.h:272:6:comms_cdc_rx_callback	16	static
-../Core/Inc/stm_dataTransfer.h:300:13:comms_data_handler	16	static
-../Core/Inc/stm_dataTransfer.h:317:6:comms_rx_process	1040	static
-../Core/Inc/stm_dataTransfer.h:361:6:comms_lpuart_rx_callback	24	static
-../Core/Inc/stm_dataTransfer.h:444:6:HAL_UART_RxCpltCallback	16	static
+../Core/Inc/stm_dataTransfer.h:300:13:comms_data_handler	24	static
+../Core/Inc/stm_dataTransfer.h:318:6:comms_rx_process	1040	static
+../Core/Inc/stm_dataTransfer.h:362:6:comms_lpuart_rx_callback	24	static
+../Core/Inc/stm_dataTransfer.h:445:6:HAL_UART_RxCpltCallback	16	static
 ../Core/Src/main.c:105:6:HAL_TIM_PeriodElapsedCallback	16	static
 ../Core/Src/main.c:127:6:myDmaFunction	16	static
 ../Core/Src/main.c:132:6:HAL_ADC_ConvCpltCallback	32	static

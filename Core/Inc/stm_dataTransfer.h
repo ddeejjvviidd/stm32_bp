@@ -305,8 +305,9 @@ __weak void comms_data_handler(CommsData *data) {
 
 	switch (data->data_id) {
 	case 5:
+		GPIO_PinState currentState = HAL_GPIO_ReadPin(LD3_GPIO_Port, LD3_Pin);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin,
-				(GPIO_PinState) (data->data[0].u8));
+				(currentState == GPIO_PIN_SET) ? GPIO_PIN_RESET : GPIO_PIN_SET);
 		break;
 	default:
 		break;
