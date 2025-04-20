@@ -9,8 +9,8 @@
 #define MAX_DATA_ID 255
 
 #define START_HEADER 0xABCD
-#define END_CR 0x0D;
-#define END_LF 0x0A;
+#define END_CR 0x0D
+#define END_LF 0x0A
 
 #define ALLOW_TX_APPEND_DUPLICITE_DATA_ID 0
 
