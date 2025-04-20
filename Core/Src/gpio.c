@@ -116,6 +116,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			previous = false;
 		}
 
+		int test = 1984;
+		comms_append_int32(10, 1, &test);
+		comms_send();
 	}
   /* Prevent unused argument(s) compilation warning */
   //UNUSED(GPIO_Pin);

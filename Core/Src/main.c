@@ -17,7 +17,6 @@
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
-#include <stm_dataTransfer.h>
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
@@ -28,6 +27,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
+#include "comms_data_rxtx.h"
+#include "math.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -37,6 +40,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define VREF 3.3f // Referenční napětí ADC
+#define ADC_RESOLUTION 4096.0f // Rozlišení ADC (12-bit)
+#define TS_CAL1_ADDR  ((uint16_t*)0x1FFF75A8) // Factory-calibrated value at 30°C
+#define TS_CAL2_ADDR  ((uint16_t*)0x1FFF75CA) // Factory-calibrated value at 110°C
+#define TEMP30_CAL_V  *TS_CAL1_ADDR // ADC hodnota při 30°C
+#define TEMP110_CAL_V *TS_CAL2_ADDR // ADC hodnota při 110°C
+#define TEMP_DIFF  (110.0f - 30.0f) // Rozdíl teplot mezi kalibracemi
 
 /* USER CODE END PD */
 
@@ -65,10 +76,22 @@ float cpy[1000];
 //promenna pro DMA kruhovy buffer
 uint16_t dma_data_buffer[200];
 
-float potenciometer;
-int potenciometerInt;
-uint8_t potenciometerArr[sizeof(int)];
-uint8_t potenciometerArr2[sizeof(int)];
+float adcValue = 0.0f;
+int adcValueInt = 0;
+float temperature = 0.0f;
+
+float adcIn1 = 0.0f;
+
+float vref_actual = 0.0f;
+
+int numOfCalling = 0;
+
+int temperatureInt = 0;
+int adcIn1Int = 0;
+
+int call_count = 0;
+
+int full_adc = 0;
 
 /* USER CODE END PV */
 
@@ -92,35 +115,15 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		periodical += 1;
 
 		//odeslani do matlabu
-		DataTransmit2MTLB(1010, &periodical, 1);
+		comms_append_int32(1, 1, &periodical);
 	}
+
+	if (htim == &htim3) {
+			//HAL_GPIO_TogglePin(LD1_GPIO_Port, LD1_Pin);
+		}
 }
 
 char testdata[10];
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	UNUSED(huart);
-
-//    if(huart == &hlpuart1){
-//    	HAL_UART_Transmit_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-//    	HAL_UART_Receive_DMA(&hlpuart1, (uint8_t*)testdata, 10);
-//    }
-
-}
-
-void DataReceive_MTLB_Callback(uint16_t iD, uint32_t *xData, uint16_t nData_in_values) {
-	// funkce volana po prijmu dat
-
-	switch (iD) {
-	case 20:
-		//data odesilam zpet do matlabu
-		DataTransmit2MTLB(20, xData, nData_in_values);
-		break;
-
-	default:
-		break;
-	}
-}
 
 /* ------------------ DMA FUNKCE A CALLBACKY ------------------ */
 void myDmaFunction(DMA_HandleTypeDef *_hdma) {
@@ -129,31 +132,84 @@ void myDmaFunction(DMA_HandleTypeDef *_hdma) {
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-	// Callback pro naplneni celeho kruhoveho bufferu
+    UNUSED(hadc);
+    //HAL_GPIO_TogglePin(LD3_GPIO_Port, LD3_Pin);
 
-	UNUSED(hadc);
+    ++call_count;
 
-	potenciometer = 0;
-	for (int i = 0; i < 100; i++) {
-		potenciometer = potenciometer + dma_data_buffer[i + 100];
-	}
-	potenciometer = potenciometer / 100;
-	potenciometerInt = (int) potenciometer;
+    // Průměrování ADC hodnot
+    adcValue = 0.0f;
+    adcIn1 = 0.0f;
 
-	SendInt2MTLB(23, &potenciometerInt);
+    for (int i = 0; i < 10; i++) {
+        adcValue += dma_data_buffer[i + 10]; // Použití druhé poloviny DMA bufferu
+        adcIn1 += dma_data_buffer[i + 1 + 10];
+        i++;
+    }
+    adcValue /= 50.0f;
+    adcIn1 /= 50.0f;
+
+    // Převod ADC hodnoty na napětí
+    float adcVoltage = (adcValue / ADC_RESOLUTION) * VREF;
+    //float adcVoltage = 1.21;
+
+    // Výpočet teploty
+    float temp30 = ((float)TEMP30_CAL_V / ADC_RESOLUTION) * VREF;
+    float temp110 = ((float)TEMP110_CAL_V / ADC_RESOLUTION) * VREF;
+    //temperature = ((adcVoltage - temp30) * TEMP_DIFF / (temp110 - temp30)) + 30.0f;
+    temperature = ((adcVoltage - temp30) * TEMP_DIFF) + 30.0f;
+    //temperature = ((110.0 - 30.0)/(TEMP110_CAL_V - TEMP30_CAL_V)) * (adcValue - TEMP30_CAL_V) + 30.0;
+    numOfCalling++;
+
+    // Odeslání teploty jako integer
+    temperatureInt = (int)temperature;
+
+    adcIn1Int = (int)adcIn1;
+
+    full_adc++;
+
+    comms_append_int32(2, 1, &temperatureInt);
+    comms_append_int32(23, 1, &adcIn1Int);
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
 	UNUSED(hadc);
 
-	potenciometer = 0;
-	for (int i = 0; i < 100; i++) {
-		potenciometer = potenciometer + dma_data_buffer[i];
-	}
-	potenciometer = potenciometer / 100;
-	potenciometerInt = (int) potenciometer;
+//	adcValue = 0;
+//	for (int i = 0; i < 100; i++) {
+//		adcValue = adcValue + dma_data_buffer[i];
+//	}
+//	adcValue = adcValue / 100;
+//	adcValueInt = (int) adcValue;
 
-	SendInt2MTLB(23, &potenciometerInt);
+}
+
+void load_CPU() {
+    // Alokace dvou velkých polí
+    uint32_t *src_array = (uint32_t*)malloc(1000000 * sizeof(uint32_t));
+    uint32_t *dest_array = (uint32_t*)malloc(1000000 * sizeof(uint32_t));
+
+    if (src_array == NULL || dest_array == NULL) {
+        // Pokud se nepodaří alokovat paměť
+        return;
+    }
+
+    // Naplnění zdrojového pole hodnotami
+    for (uint32_t i = 0; i < 1000000; i++) {
+        src_array[i] = i;
+    }
+
+    // Opakované kopírování polí pro zatížení CPU
+    for (uint32_t repeat = 0; repeat < 100000; repeat++) {
+        for (uint32_t i = 0; i < 1000000; i++) {
+            dest_array[i] = src_array[i];
+            int test = 999999999 / 190241835;
+        }
+    }
+
+    // Uvolnění paměti
+    free(src_array);
+    free(dest_array);
 }
 
 /* USER CODE END 0 */
@@ -197,8 +253,6 @@ int main(void)
   MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
-
-
 	// zapnuti zelene ledky
 	HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_SET);
 
@@ -226,13 +280,17 @@ int main(void)
 	dma_toc = htim5.Instance->CNT;
 	toc = htim5.Instance->CNT;
 
-	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 
+	HAL_Delay(50);
 
-	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 200);
 
+	HAL_StatusTypeDef adc_status = HAL_ADC_Start_DMA(&hadc1, dma_data_buffer, 20);
 
+	HAL_TIM_Base_Start_IT(&htim3);
+
+	comms_init();
+	comms_uart_init();
 
   /* USER CODE END 2 */
 
@@ -244,7 +302,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-		m2s_Process();
+		//load_CPU();
+		comms_send();
+		comms_rx_process();
 
 	}
   /* USER CODE END 3 */
