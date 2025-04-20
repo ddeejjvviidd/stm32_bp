@@ -11,6 +11,6 @@
 ../Core/Src/comms_data_rxtx.c:211:6:comms_switch_rx_buffers	1
 ../Core/Src/comms_data_rxtx.c:235:6:comms_cdc_rx_callback	4
 ../Core/Src/comms_data_rxtx.c:263:13:comms_data_handler	3
-../Core/Src/comms_data_rxtx.c:282:6:comms_rx_process	9
-../Core/Src/comms_data_rxtx.c:326:6:comms_lpuart_rx_callback	9
-../Core/Src/comms_data_rxtx.c:409:6:HAL_UART_RxCpltCallback	2
+../Core/Src/comms_data_rxtx.c:283:6:comms_rx_process	9
+../Core/Src/comms_data_rxtx.c:327:6:comms_lpuart_rx_callback	9
+../Core/Src/comms_data_rxtx.c:410:6:HAL_UART_RxCpltCallback	2

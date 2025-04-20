@@ -20,7 +20,7 @@ uint8_t *comms_rx_prepared_rd_pointer;
 
 comms_interface comms_selected_interface = COMMS_UART;
 
-comms_state wr_status = COMMS_READY;
+comms_state tx_wr_status = COMMS_READY;
 comms_state tx_status = COMMS_READY;
 comms_state rx_status = COMMS_READY;
 
@@ -110,11 +110,11 @@ int comms_append_int32(uint8_t data_id, uint8_t data_count, int *data) {
 		return COMMS_DATA_ID_EXISTS;
 	}
 
-	if (wr_status) {
+	if (tx_wr_status) {
 		return COMMS_WR_LOCKED;
 	}
 	else {
-		wr_status = COMMS_INPROGRESS;
+		tx_wr_status = COMMS_INPROGRESS;
 	}
 
 	// save the pointer to new data to register
@@ -134,9 +134,9 @@ int comms_append_int32(uint8_t data_id, uint8_t data_count, int *data) {
 	// move pointer comms_tx_buffer_wr_pointer
 	comms_tx_active_wr_pointer = (comms_tx_active_wr_pointer + 3 + sizeof(*data));
 
-	wr_status = COMMS_READY;
+	tx_wr_status = COMMS_READY;
 
-	return 0;
+	return COMMS_SUCCESS;
 }
 
 
@@ -273,6 +273,7 @@ __weak void comms_data_handler(CommsData *data) {
 				(currentState == GPIO_PIN_SET) ? GPIO_PIN_RESET : GPIO_PIN_SET);
 		break;
 	default:
+		return COMMS_RX_DATA_ID_NOT_IMPLEMENTED;
 		break;
 	}
 
