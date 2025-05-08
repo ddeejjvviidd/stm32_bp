@@ -9,7 +9,7 @@ uint8_t *comms_tx_active_buffer; // pointer to wr ready buffer
 uint8_t *comms_tx_active_wr_pointer; // pointer to first empty wr position in active buffer
 uint8_t *comms_tx_prepared_buffer; // pointer to tx ready buffer
 uint8_t *comms_tx_prepared_wr_pointer; // same but in tx ready buffer - just for counting the buffer size
-void *comms_tx_data_id_register[MAX_DATA_ID] = { NULL }; // register of written data id
+void *comms_tx_data_id_register[MAX_DATA_ID+1] = { NULL }; // register of written data id
 
 uint8_t comms_rx_buffer1[MAX_RX_BUFFER_SIZE] = { 0 }; // buffer for rx data
 uint8_t comms_rx_buffer2[MAX_RX_BUFFER_SIZE] = { 0 };
@@ -110,6 +110,11 @@ int comms_append_int32(uint8_t data_id, uint8_t data_count, int *data) {
 		return COMMS_DATA_ID_EXISTS;
 	}
 
+	//check bounds
+	if ((comms_tx_active_wr_pointer + (3 + (data_count * sizeof(*data))) - comms_tx_active_buffer) > MAX_TX_BUFFER_SIZE) {
+		return COMMS_TX_BUFFER_FULL;
+	}
+
 	if (tx_wr_status) {
 		return COMMS_WR_LOCKED;
 	}
@@ -189,9 +194,11 @@ int comms_send() {
 	HAL_StatusTypeDef uart_return = 0;
 
 	if(comms_selected_interface == COMMS_USB_OTG){
-		cdc_return = CDC_Transmit_FS(comms_tx_prepared_buffer, comms_tx_prepared_wr_pointer - comms_tx_prepared_buffer);
+		cdc_return = CDC_Transmit_FS(comms_tx_prepared_buffer,
+				comms_tx_prepared_wr_pointer - comms_tx_prepared_buffer);
 	} else {
-		uart_return = HAL_UART_Transmit(&hlpuart1, comms_tx_prepared_buffer, comms_tx_prepared_wr_pointer - comms_tx_prepared_buffer, 100);
+		uart_return = HAL_UART_Transmit(&hlpuart1, comms_tx_prepared_buffer,
+				comms_tx_prepared_wr_pointer - comms_tx_prepared_buffer, 10000);
 	}
 
 	tx_status = COMMS_READY;
@@ -271,6 +278,13 @@ __weak void comms_data_handler(CommsData *data) {
 		GPIO_PinState currentState = HAL_GPIO_ReadPin(LD3_GPIO_Port, LD3_Pin);
 		HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin,
 				(currentState == GPIO_PIN_SET) ? GPIO_PIN_RESET : GPIO_PIN_SET);
+		break;
+	case 20:
+		int id = 20;
+		int total = data->data_count;
+		int value = (int)(data->data[0].u32);
+
+		comms_append_int32(id, total, &value);
 		break;
 	default:
 		return COMMS_RX_DATA_ID_NOT_IMPLEMENTED;

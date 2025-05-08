@@ -145,14 +145,14 @@ classdef comms_data_rxtx < handle
             end
         end
         
-        function configure_callback(obj, callback_function)
+        function configure_callback(obj, app)
             if isempty(obj.serial_port) || ~isvalid(obj.serial_port)
                 error('Serial port object is invalid or empty (configure_callback)');
             end
             if ~obj.connected
                 error('Serial port is not open (configure_callback)');
             end
-            configureCallback(obj.serial_port, "terminator", callback_function);
+            configureCallback(obj.serial_port, "terminator", @(src, event) obj.handle_rx_callback(app, src, event));
         end
 
         function handle_rx_callback(obj, app, src, ~)

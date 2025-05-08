@@ -93,6 +93,8 @@ int call_count = 0;
 
 int full_adc = 0;
 
+int fails = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -163,6 +165,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
     // Odeslání teploty jako integer
     temperatureInt = (int)temperature;
+    temperatureInt = 23;
 
     adcIn1Int = (int)adcIn1;
 
@@ -303,7 +306,13 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 		//load_CPU();
-		comms_send();
+
+		int returnStatus = comms_send();
+		if (returnStatus == COMMS_TX_UART_FAIL || returnStatus == COMMS_TX_CDC_FAIL){
+			fails++;
+		}
+
+		//zprocesovani prijmu dat
 		comms_rx_process();
 
 	}

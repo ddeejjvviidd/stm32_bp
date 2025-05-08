@@ -15,8 +15,8 @@
  * @note The buffer size can be increased if needed, but it will consume more RAM.
  * @warning Setting this value too low may lead to errors and data loss.
  */
-#define MAX_TX_BUFFER_SIZE 16384 / 16
-#define MAX_RX_BUFFER_SIZE 16384 / 16
+#define MAX_TX_BUFFER_SIZE 65536 / 64
+#define MAX_RX_BUFFER_SIZE 65536 / 64
 
 /**
  * @brief Size for the data ID register, which keeps track of written data packet IDs.
@@ -44,7 +44,7 @@
  * @note User can set this value to 1 if he wants to allow appending packets with duplicate data IDs.
  * @warning Setting this value to anything but 0 or 1 may lead to undefined behavior.
  */
-#define ALLOW_TX_APPEND_DUPLICITE_DATA_ID 0
+#define ALLOW_TX_APPEND_DUPLICITE_DATA_ID 1
 
 
 /**
@@ -68,7 +68,7 @@ extern uint8_t *comms_tx_active_buffer;
 extern uint8_t *comms_tx_active_wr_pointer;
 extern uint8_t *comms_tx_prepared_buffer;
 extern uint8_t *comms_tx_prepared_wr_pointer;
-extern void *comms_tx_data_id_register[MAX_DATA_ID];
+extern void *comms_tx_data_id_register[MAX_DATA_ID + 1];
 
 /**
  * @brief Buffers for RX operations and all pointers for their control.
@@ -147,6 +147,7 @@ typedef enum {
 	COMMS_TX_UART_FAIL,
 	COMMS_DATA_ID_EXISTS,
 	COMMS_RX_DATA_ID_NOT_IMPLEMENTED,
+	COMMS_TX_BUFFER_FULL,
 } comms_return_codes;
 
 /**
