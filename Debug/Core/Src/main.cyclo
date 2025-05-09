@@ -1,8 +1,0 @@
-../Core/Src/main.c:109:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:131:6:myDmaFunction	1
-../Core/Src/main.c:136:6:HAL_ADC_ConvCpltCallback	2
-../Core/Src/main.c:178:6:HAL_ADC_ConvHalfCpltCallback	1
-../Core/Src/main.c:190:6:load_CPU	6
-../Core/Src/main.c:224:5:main	4
-../Core/Src/main.c:326:6:SystemClock_Config	4
-../Core/Src/main.c:380:6:Error_Handler	1
