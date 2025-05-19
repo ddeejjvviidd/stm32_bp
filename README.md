@@ -23,10 +23,11 @@ Tento soubor slouží jako uživatelská příručka. Obsahuje tyto sekce:
 2. Předpoklady
 3. Účely použití
 4. Zprovoznění knihovny pro CubeIDE
-5. Zprovoznění knihovny pro MATLAB
-6. Princip
-7. Použití knihovny pro mikrokontrolér
-8. Použití knihovny pro MATLAB
+5. Výběr rozhraní
+6. Zprovoznění knihovny pro MATLAB
+7. Princip
+8. Použití knihovny pro mikrokontrolér
+9. Použití knihovny pro MATLAB
 
 
 ## 1. Úvod
@@ -113,14 +114,26 @@ Knihovna pro desktopovou aplikaci je kompatibilní pouze s prostředím MATLAB. 
 
 ![image](https://github.com/user-attachments/assets/85a10a1c-a7f6-4399-83c9-e25defbe4aec)
 
+## 5. Výběr rozhraní
 
-## 5. Zprovoznění knihovny pro MATLAB
+Na straně mikrokontroléru lze zvolit mezi použitím rozhraní UART a USB OTG FS.
+
+Výběr se provádí změnou proměnné comms_selected_interface v souboru comms_data_rxtx.c.
+
+Funkce může mít dvě hodnoty:
+- COMMS_UART
+- COMMS_USB_OTG
+
+![image](https://github.com/user-attachments/assets/2c07fc4b-98a2-4f45-a864-6b99401a8e43)
+
+
+## 6. Zprovoznění knihovny pro MATLAB
 
 - Soubor comms_data_rxtx.m je nutné pouze vložit do stejného adresáře, jako je Vaše aplikace v MATLABu
 
 ![image](https://github.com/user-attachments/assets/6670a7e3-2ebd-463f-9693-25e7baaa7189)
 
-## 6. Princip
+## 7. Princip
 
 - Knihovna umožňuje odesílání dat ve větších blocích, aby se zvýšila rychlost a efektivita přenosu.
 - Uživatel přidává pomocí funkcí datové typy do vyrovnávací paměti (bufferu) v knihovně.
@@ -128,14 +141,14 @@ Knihovna pro desktopovou aplikaci je kompatibilní pouze s prostředím MATLAB. 
 - S každým datovým typem se odesílá i uživatelem zvolené ID, dle kterého je možno data na druhé straně zpracovat dle libosti.
 
 
-## 7. Použití knihovny pro mikrokontrolér
+## 8. Použití knihovny pro mikrokontrolér
 
 ### **Přidání dat pro odeslání**
 
 Pro přidání dat k odeslání slouží funkce comms_append_int32();, které je nutno jako parametry předat:
-- Zvolené ID dat
+- Zvolené ID dat (0-255)
 - Počet dat
-- Ukazatel na data
+- Ukazatel na data (jeden datový typ nebo pole)
 
 Příklad přidání dat: 
 
@@ -167,3 +180,45 @@ Dle data_size lze ve stavovém automatu rozklíčovat, zda se má ke konkrétní
 
 ![image](https://github.com/user-attachments/assets/9ed6cc80-c0cb-47e5-839d-be582658415f)
 
+## 9. Použití knihovny pro MATLAB
+
+### **Krok 1:** Vytvoření instance knihovny
+
+![image](https://github.com/user-attachments/assets/4c89d781-f6db-460c-b1d2-716232861939)
+
+### **Krok 2:** Připojení k sériovému portu
+
+_Mikrokontrolér se po připojení k počítači zpřístupní jako sériový port, přes který komunikace probíhá. Správný sériový port je nutno zjistit svépomoci detekcí nových portů, které přibydou po připojení mikrokontroléru_
+
+1. Pro připojení k portu je nutno zavolat funkci knihovny open_port(), které je nutno dát parametr konkrétní sériový port a rychlost přenosu nastavenou dříve na straně mikrokontroléru.
+
+2. Po úspěšném připojení je nutno zavolat funkci configure_callback(), která za uživatele automaticky vytvoří callback pro příjem dat.
+
+![image](https://github.com/user-attachments/assets/248f161b-9233-4ece-92d1-7a344601f0eb)
+
+### **Přidání dat pro odeslání** 
+
+Pro přidání nových dat k odeslání slouží na straně MATLABu stejnojmenná funkce comms_append_int32(), které se opět musí předat parametry ID dat, počet dat a data:
+
+![image](https://github.com/user-attachments/assets/fea640f7-1334-45a0-8439-6306972fb677)
+
+### **Odeslání dat** 
+
+Pro odeslání dat slouží stejnojmenná funkce comms_send():
+
+![image](https://github.com/user-attachments/assets/25d05c99-f221-44f4-a2b6-dfc10a7f801c)
+
+### **Příjem dat**
+
+Pro příjem dat je nutno vytvořit funkci processReceivedData() s parametry:
+- ID bufferu
+- počet datových prvků
+- datový buffer
+
+Data se musí zpracovat stavovým automatem, který bude dle načteného ID z datového bufferu určovat, co přesně se s daty stane:
+
+![image](https://github.com/user-attachments/assets/8a5d5b0b-886f-44cf-afc0-5d9c46ae2086)
+
+Struktura dat je následující:
+
+![image](https://github.com/user-attachments/assets/2e37bede-d6ca-404b-82ab-29aa1026463e)
