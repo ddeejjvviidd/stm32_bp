@@ -23,9 +23,10 @@ Tento soubor slouží jako uživatelská příručka. Obsahuje tyto sekce:
 2. Předpoklady
 3. Účely použití
 4. Zprovoznění knihovny pro CubeIDE
-5. Přidání knihovny do MATLABu
-6. Použití knihovny pro mikrokontrolér
-7. Použití knihovny pro MATLAB
+5. Zprovoznění knihovny pro MATLAB
+6. Princip
+7. Použití knihovny pro mikrokontrolér
+8. Použití knihovny pro MATLAB
 
 
 ## 1. Úvod
@@ -103,4 +104,66 @@ Knihovna pro desktopovou aplikaci je kompatibilní pouze s prostředím MATLAB. 
 ### **Krok 5**: Uložit 
 
 - Uložte novou konfiguraci hardwaru a zvolte ano pro aktualizování a vygenerování obslužného kódu
+
+### **Krok 6**: Předání dat knihovně
+
+1. Přejděte do souboru vášprojekt/USB_DEVICE/App/usbd_cdc_if.c
+2. Najděte v něm funkci CDC_Receive_FS();
+3. Ve funkci připište následující řádek:
+
+![image](https://github.com/user-attachments/assets/85a10a1c-a7f6-4399-83c9-e25defbe4aec)
+
+
+## 5. Zprovoznění knihovny pro MATLAB
+
+- Soubor comms_data_rxtx.m je nutné pouze vložit do stejného adresáře, jako je Vaše aplikace v MATLABu
+
+![image](https://github.com/user-attachments/assets/6670a7e3-2ebd-463f-9693-25e7baaa7189)
+
+## 6. Princip
+
+- Knihovna umožňuje odesílání dat ve větších blocích, aby se zvýšila rychlost a efektivita přenosu.
+- Uživatel přidává pomocí funkcí datové typy do vyrovnávací paměti (bufferu) v knihovně.
+- Data jsou odeslána jako celek až po zavolání funkce pro odeslání dat.
+- S každým datovým typem se odesílá i uživatelem zvolené ID, dle kterého je možno data na druhé straně zpracovat dle libosti.
+
+
+## 7. Použití knihovny pro mikrokontrolér
+
+### **Přidání dat pro odeslání**
+
+Pro přidání dat k odeslání slouží funkce comms_append_int32();, které je nutno jako parametry předat:
+- Zvolené ID dat
+- Počet dat
+- Ukazatel na data
+
+Příklad přidání dat: 
+
+![image](https://github.com/user-attachments/assets/80253eb1-e4cb-436c-8fff-42f579269102)
+
+### **Odeslání dat** 
+
+- Pro odeslání dat slouží funkce comms_send();
+- Je optimální volat ji například z nekonečné smyčky programu, v případě přidání dat kdykoliv za běhu programu tak budou data vždy odeslána
+
+![image](https://github.com/user-attachments/assets/d540f00d-df83-4e60-9441-34d5d330b5ee)
+
+### **Příjem dat**
+
+- Pro příjem dat slouží funkce comms_data_handler();
+- Funkce je volána pro každou přijatou proměnnou.
+- Funkci lze předefinovat ve Vašem uživatelském kódu, implementaci v knihovně pak bude kompilátor ignorovat, slouží přimárně jako příklad.
+- Funkci je předávána vytvořená struktura obsahující načtená data, lze k nim přistupovat pomocí ukazatelů:
+
+![image](https://github.com/user-attachments/assets/9f502ef3-7eda-4023-8686-a04cb6934113)
+
+Struktura má následující podobu, obsahuje:
+1. data_id (zvolené ID dat)
+2. data_size (velikost v bajtech)
+3. data_count (počet datových typů)
+4. data (datové typy)
+
+Dle data_size lze ve stavovém automatu rozklíčovat, zda se má ke konkrétním datům přistupovat jako k 4, 2 nebo 1 bajtovým proměnným.
+
+![image](https://github.com/user-attachments/assets/9ed6cc80-c0cb-47e5-839d-be582658415f)
 
